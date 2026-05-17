@@ -7,7 +7,7 @@ class PrayerTimeUtils {
     DateTime? date,
   }) {
     final coords = Coordinates(latitude, longitude);
-    final params = CalculationMethod.karachi().getParameters()
+    final params = CalculationMethod.karachi.getParameters()
       ..madhab = Madhab.hanafi;
     final dateComponents = DateComponents.from(date ?? DateTime.now());
     return PrayerTimes(coords, dateComponents, params);

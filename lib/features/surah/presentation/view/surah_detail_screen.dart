@@ -24,9 +24,9 @@ class SurahDetailScreen extends StatelessWidget {
           margin: EdgeInsets.only(bottom: 12.h),
           padding: EdgeInsets.all(16.w),
           decoration: BoxDecoration(
-            color: i % 2 == 0 ? AppColors.primary.withOpacity(0.04) : Colors.transparent,
+            color: i % 2 == 0 ? AppColors.primary.withValues(alpha: 0.04) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.primary.withOpacity(0.08)),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.08)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

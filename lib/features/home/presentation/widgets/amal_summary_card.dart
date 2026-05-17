@@ -29,7 +29,7 @@ class AmalSummaryCard extends StatelessWidget {
             SizedBox(height: 12.h),
             LinearProgressIndicator(
               value: progress,
-              backgroundColor: AppColors.primaryLight.withOpacity(0.2),
+              backgroundColor: AppColors.primaryLight.withValues(alpha: 0.2),
               color: AppColors.primary,
               minHeight: 8,
               borderRadius: BorderRadius.circular(4),

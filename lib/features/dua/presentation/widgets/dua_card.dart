@@ -29,7 +29,7 @@ class DuaCard extends StatelessWidget {
                 children: [
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                    decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                    decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                     child: Text(dua.category.banglaName, style: TextStyle(fontSize: 11.sp, color: AppColors.primary)),
                   ),
                   const Spacer(),

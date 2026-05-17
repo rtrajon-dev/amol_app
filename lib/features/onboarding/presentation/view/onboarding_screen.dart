@@ -57,7 +57,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 width: _currentPage == i ? 20.w : 8.w,
                 height: 8.h,
                 decoration: BoxDecoration(
-                  color: _currentPage == i ? AppColors.primary : AppColors.primary.withOpacity(0.3),
+                  color: _currentPage == i ? AppColors.primary : AppColors.primary.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(4),
                 ),
               )),

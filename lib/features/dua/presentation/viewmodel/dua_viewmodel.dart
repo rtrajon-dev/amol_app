@@ -2,7 +2,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/dua_model.dart';
 
-final selectedCategoryProvider = StateProvider<DuaCategory?>((ref) => null);
+class SelectedCategoryNotifier extends Notifier<DuaCategory?> {
+  @override
+  DuaCategory? build() => null;
+
+  void select(DuaCategory? category) => state = category;
+}
+
+final selectedCategoryProvider =
+    NotifierProvider<SelectedCategoryNotifier, DuaCategory?>(
+        SelectedCategoryNotifier.new);
 
 final duaListProvider = Provider.family<List<DuaModel>, DuaCategory?>((ref, category) {
   // TODO: load from JSON asset (lib/assets/data/duas.json)

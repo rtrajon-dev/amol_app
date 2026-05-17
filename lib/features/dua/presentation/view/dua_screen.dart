@@ -26,11 +26,11 @@ class DuaScreen extends ConsumerWidget {
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               children: [
-                DuaCategoryChip(label: 'সব', isSelected: selectedCategory == null, onTap: () => ref.read(selectedCategoryProvider.notifier).state = null),
+                DuaCategoryChip(label: 'সব', isSelected: selectedCategory == null, onTap: () => ref.read(selectedCategoryProvider.notifier).select(null)),
                 ...DuaCategory.values.map((c) => DuaCategoryChip(
                       label: c.banglaName,
                       isSelected: selectedCategory == c,
-                      onTap: () => ref.read(selectedCategoryProvider.notifier).state = c,
+                      onTap: () => ref.read(selectedCategoryProvider.notifier).select(c),
                     )),
               ],
             ),

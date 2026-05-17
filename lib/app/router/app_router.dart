@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -26,26 +25,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: AppRoutes.onboarding,
-        builder: (_, __) => const OnboardingScreen(),
+        builder: (_, _) => const OnboardingScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [
           GoRoute(
             path: AppRoutes.home,
-            builder: (_, __) => const HomeScreen(),
+            builder: (_, _) => const HomeScreen(),
           ),
           GoRoute(
             path: AppRoutes.prayerTime,
-            builder: (_, __) => const PrayerTimeScreen(),
+            builder: (_, _) => const PrayerTimeScreen(),
           ),
           GoRoute(
             path: AppRoutes.tasbeeh,
-            builder: (_, __) => const TasbeehScreen(),
+            builder: (_, _) => const TasbeehScreen(),
           ),
           GoRoute(
             path: AppRoutes.dua,
-            builder: (_, __) => const DuaScreen(),
+            builder: (_, _) => const DuaScreen(),
             routes: [
               GoRoute(
                 path: ':id',
@@ -56,27 +55,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.amalTracker,
-            builder: (_, __) => const AmalTrackerScreen(),
+            builder: (_, _) => const AmalTrackerScreen(),
           ),
           GoRoute(
             path: AppRoutes.qibla,
-            builder: (_, __) => const QiblaScreen(),
+            builder: (_, _) => const QiblaScreen(),
           ),
           GoRoute(
             path: AppRoutes.hadith,
-            builder: (_, __) => const HadithScreen(),
+            builder: (_, _) => const HadithScreen(),
           ),
           GoRoute(
             path: AppRoutes.islamicCalendar,
-            builder: (_, __) => const CalendarScreen(),
+            builder: (_, _) => const CalendarScreen(),
           ),
           GoRoute(
             path: AppRoutes.namesOfAllah,
-            builder: (_, __) => const NamesScreen(),
+            builder: (_, _) => const NamesScreen(),
           ),
           GoRoute(
             path: AppRoutes.surah,
-            builder: (_, __) => const SurahScreen(),
+            builder: (_, _) => const SurahScreen(),
             routes: [
               GoRoute(
                 path: ':id',
@@ -87,11 +86,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.ramadan,
-            builder: (_, __) => const RamadanScreen(),
+            builder: (_, _) => const RamadanScreen(),
           ),
           GoRoute(
             path: AppRoutes.settings,
-            builder: (_, __) => const SettingsScreen(),
+            builder: (_, _) => const SettingsScreen(),
           ),
         ],
       ),

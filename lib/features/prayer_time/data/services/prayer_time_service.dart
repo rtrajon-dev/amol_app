@@ -2,7 +2,7 @@ import 'package:adhan/adhan.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../../../app/utils/prayer_time_utils.dart';
-import '../../domain/models/prayer_time_model.dart';
+import '../../domain/models/prayer_time_model.dart' hide Prayer;
 
 class PrayerTimeService {
   Future<PrayerTimesModel> getTodayPrayerTimes() async {

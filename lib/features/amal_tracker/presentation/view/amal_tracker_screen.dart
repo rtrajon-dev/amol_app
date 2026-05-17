@@ -32,7 +32,7 @@ class AmalTrackerScreen extends ConsumerWidget {
             Container(
               margin: EdgeInsets.all(16.w),
               padding: EdgeInsets.all(12.w),
-              decoration: BoxDecoration(color: AppColors.success.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

@@ -19,7 +19,7 @@ class TasbeehSelector extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: 16.w),
         itemCount: presets.length,
-        separatorBuilder: (_, __) => SizedBox(width: 8.w),
+        separatorBuilder: (_, _) => SizedBox(width: 8.w),
         itemBuilder: (_, i) {
           final item = presets[i];
           final isSelected = item.bangla == selected.bangla;

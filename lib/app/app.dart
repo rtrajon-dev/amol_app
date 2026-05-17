@@ -16,7 +16,7 @@ class IslamicAmolApp extends ConsumerWidget {
     return ScreenUtilInit(
       designSize: const Size(390, 844),
       minTextAdapt: true,
-      builder: (_, __) => MaterialApp.router(
+      builder: (_, _) => MaterialApp.router(
         title: 'ইসলামিক আমল',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,

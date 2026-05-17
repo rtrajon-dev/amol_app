@@ -40,7 +40,7 @@ class AmalCheckItem extends StatelessWidget {
         subtitle: Text(item.subtitle, style: TextStyle(fontSize: 12.sp)),
         trailing: item.isPremium ? Container(
           padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-          decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+          decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
           child: Text('প্রিমিয়াম', style: TextStyle(fontSize: 10.sp, color: AppColors.accent, fontWeight: FontWeight.bold)),
         ) : null,
       ),

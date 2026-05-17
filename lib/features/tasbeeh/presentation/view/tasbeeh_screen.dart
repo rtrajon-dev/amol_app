@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../domain/models/tasbeeh_model.dart';
 import '../viewmodel/tasbeeh_viewmodel.dart';
 import '../widgets/tasbeeh_selector.dart';
 
@@ -29,7 +30,7 @@ class TasbeehScreen extends ConsumerWidget {
       body: Column(
         children: [
           TasbeehSelector(
-            presets: state.selected.presets,
+            presets: TasbeehModel.presets,
             selected: state.selected,
             onSelect: notifier.select,
           ),
@@ -50,7 +51,7 @@ class TasbeehScreen extends ConsumerWidget {
           SizedBox(height: 8.h),
           LinearProgressIndicator(
             value: state.count / state.selected.target,
-            backgroundColor: AppColors.primaryLight.withOpacity(0.2),
+            backgroundColor: AppColors.primaryLight.withValues(alpha: 0.2),
             color: AppColors.primary,
             minHeight: 6,
           ),
@@ -68,7 +69,7 @@ class TasbeehScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: AppColors.primary,
-                boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.4), blurRadius: 20, spreadRadius: 4)],
+                boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 20, spreadRadius: 4)],
               ),
               child: Icon(Icons.add, color: Colors.white, size: 48.sp),
             ),

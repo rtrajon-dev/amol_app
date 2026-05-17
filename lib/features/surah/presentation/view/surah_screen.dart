@@ -23,7 +23,7 @@ class SurahScreen extends StatelessWidget {
               leading: Container(
                 width: 40.w,
                 height: 40.w,
-                decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                 child: Center(child: Text('${surah.number}', style: TextStyle(fontSize: 13.sp, color: AppColors.primary, fontWeight: FontWeight.bold))),
               ),
               title: Text(surah.banglaName, style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600)),
