@@ -1,0 +1,104 @@
+name: islamic_amol
+description: "ইসলামিক আমল - Daily Islamic practice tracker for Bangladeshi Muslims"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State management
+  flutter_riverpod: ^3.2.1
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # Network
+  dio: ^5.7.0
+  connectivity_plus: ^6.1.5
+
+  # Local storage
+  shared_preferences: ^2.5.4
+  flutter_secure_storage: ^10.0.0
+
+  # Location & sensors (prayer time + qibla)
+  geolocator: ^14.0.2
+  sensors_plus: ^6.1.1
+
+  # Prayer time calculation
+  adhan: ^2.0.0+1
+
+
+  # Notifications (azan alarms, daily reminders)
+  flutter_local_notifications: ^18.0.1
+
+  # UI
+  google_fonts: ^6.2.1
+  flutter_screenutil: ^5.9.3
+  flutter_svg: ^2.0.10+1
+  shimmer: ^3.0.0
+
+  # Permissions
+  permission_handler: ^12.0.1
+
+  # Utilities
+  intl: any
+  package_info_plus: ^8.3.0
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_native_splash: ^2.4.7
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  generate: true
+  uses-material-design: true
+
+  assets:
+    - lib/assets/
+    - lib/assets/icons/
+    - lib/assets/images/
+    - lib/assets/data/
+
+  fonts:
+    - family: Kalpurush
+      fonts:
+        - asset: lib/assets/fonts/kalpurush.ttf
+          weight: 400
+    - family: Amiri
+      fonts:
+        - asset: lib/assets/fonts/Amiri-Regular.ttf
+          weight: 400
+        - asset: lib/assets/fonts/Amiri-Bold.ttf
+          weight: 700
+
+flutter_native_splash:
+  color: "#1a5276"
+  color_dark: "#0d2b3e"
+  image: "lib/assets/images/splash.png"
+  android_gravity: center
+  ios_content_mode: center
+  android_12:
+    image: "lib/assets/images/splash.png"
+    color: "#1a5276"
+    icon_background_color: "#1a5276"
+  android: true
+  ios: true
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "lib/assets/images/app_icon.png"
+  adaptive_icon_background: "#1a5276"
+  adaptive_icon_foreground: "lib/assets/images/app_icon_fg.png"
