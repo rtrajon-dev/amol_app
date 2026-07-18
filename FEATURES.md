@@ -32,6 +32,7 @@ lib/
 │   ├── di/                          # Dependency injection (Riverpod providers)
 │   │   └── providers.dart
 │   ├── utils/                       # Shared utilities
+│   │   ├── hijri_utils.dart
 │   │   └── prayer_time_utils.dart
 │   └── shell/                       # Main scaffold with bottom nav
 │       ├── main_shell.dart
@@ -44,7 +45,6 @@ lib/
 │   ├── home/
 │   ├── prayer_time/
 │   ├── tasbeeh/
-│   ├── dua/
 │   ├── amal_tracker/
 │   ├── qibla/
 │   ├── hadith/
@@ -58,7 +58,7 @@ lib/
     ├── fonts/         # Kalpurush (Bangla), Amiri (Arabic)
     ├── images/        # App icon, splash, onboarding
     ├── icons/         # SVG icons
-    └── data/          # JSON data files (duas, hadiths, names)
+    └── data/          # JSON data files (hadiths, names, surahs)
 ```
 
 ### Each Feature Contains:
@@ -101,10 +101,10 @@ feature_name/
 | `sensors_plus` | Compass sensor for Qibla direction |
 | `flutter_local_notifications` | Azan alarms & daily reminders |
 | `shared_preferences` | Local persistence (amal streak, settings) |
-| `flutter_secure_storage` | Secure token storage (subscription) |
+| `flutter_secure_storage` | Secure token storage (auth, subscription) |
 | `google_fonts` | Hind font (Bangla UI) |
 | `flutter_screenutil` | Responsive sizing |
-| `dio` | HTTP client (future API calls) |
+| `dio` | HTTP client (auth, subscription, content sync) |
 
 ---
 
@@ -113,10 +113,11 @@ feature_name/
 ### 1. নামাজের সময়সূচী (Prayer Time)
 - GPS-based prayer time calculation using `adhan` package
 - Calculation method: Karachi (Hanafi madhab — standard for BD)
-- Fallback to Dhaka coordinates if location denied
 - 5 daily prayers + Sunrise displayed
+- Next-prayer countdown
 - Azan notifications via `flutter_local_notifications`
-- District-wise manual city selection (future)
+- District-wise manual city selection
+- Full specification: `docs/SRS.md`
 
 ### 2. তাসবিহ কাউন্টার (Digital Tasbeeh)
 - Preset tasbeeh: Subhanallah, Alhamdulillah, Allahu Akbar, Istighfar, La ilaha illallah
@@ -125,16 +126,7 @@ feature_name/
 - Session total tracking
 - Custom target setting (future)
 
-### 3. দৈনিক দোয়া (Dua Library)
-- Categories: Morning Azkar, Evening Azkar, After Prayer, Daily Life, Protection, Food, Sleep, Travel, Sickness
-- Arabic text + Bangla transliteration + Bangla meaning
-- Source reference (Bukhari, Muslim, etc.)
-- Favorite/bookmark system
-- Share functionality
-- Copy to clipboard
-- Data source: `assets/data/duas.json` (offline, no internet needed)
-
-### 4. আমল ট্র্যাকার (Amal Tracker)
+### 3. আমল ট্র্যাকার (Amal Tracker)
 - Daily checklist: Fajr, Dhuhr, Asr, Maghrib, Isha, Quran, Morning Azkar, Evening Azkar, Tahajjud
 - Streak counter — consecutive days of completed amal
 - Daily progress bar
@@ -142,55 +134,71 @@ feature_name/
 - Auto-reset at midnight
 - Premium items: Tahajjud, Qiyamul Layl
 
-### 5. কিবলা (Qibla Finder)
+### 4. কিবলা (Qibla Finder)
 - Compass-based using `sensors_plus` magnetometer
 - Qibla bearing calculated via `adhan` library
 - Animated compass arrow UI
 - Calibration instructions
 
-### 6. হাদিস অফ দ্য ডে
+### 5. হাদিস অফ দ্য ডে
 - Daily hadith rotation from `assets/data/hadiths.json`
 - Arabic + Bangla translation + narrator + source
 - Share to social media
-- Push notification delivery via BDApps API (premium)
+- Push notification delivery via FCM (premium)
 
-### 7. ইসলামিক ক্যালেন্ডার
+### 6. ইসলামিক ক্যালেন্ডার
 - Hijri date display using `hijri` package
 - Important Islamic dates: Eid, Ramadan, Shab-e-Barat, Shab-e-Qadr, Ashura
 - Countdown to next Islamic event
 
-### 8. আল্লাহর ৯৯ নাম
+### 7. আল্লাহর ৯৯ নাম
 - Arabic name + transliteration + Bangla meaning + benefits
 - Grid/list view
 - Memorization progress tracking (future)
 - Data source: `assets/data/names_of_allah.json`
 
-### 9. সূরা সংকলন (Surah Collection)
+### 8. সূরা সংকলন (Surah Collection)
 - Popular short surahs: Fatiha, Ikhlas, Falaq, Nas, Ayatul Kursi, Ya-Sin, Al-Mulk, Ar-Rahman
 - Arabic text (Amiri font) + Bangla translation + transliteration
 - Verse-by-verse display with numbering
 - Bookmarking last read verse
 - Data source: `assets/data/surahs.json`
 
-### 10. রমজান স্পেশাল
+### 9. রমজান স্পেশাল
 - Sehri & Iftar time countdown (uses prayer time data: Fajr = Sehri, Maghrib = Iftar)
-- Ramadan-specific amal checklist: Tarawih, Quran (1 para/day), Iftar dua, etc.
+- Ramadan-specific amal checklist: Tarawih, Quran (1 para/day), etc.
 - Ramadan day counter
 - Laylat-ul-Qadr reminder (last 10 nights)
 
-### 11. অনবোর্ডিং
+### 10. অনবোর্ডিং
 - 3-screen introduction with emoji illustrations
 - Permission requests: Location, Notifications
 - City selection for users who deny location
 
-### 12. সেটিংস
+### 11. সেটিংস
 - City/location selection
 - Prayer calculation method
 - Azan notification toggle per prayer
 - Dark/light mode
 - Arabic font size
 - Language (Bangla / English)
-- Subscription management
+- Account & subscription management
+
+---
+
+## Backend & Accounts
+
+The app is **offline-first**: prayer times, qibla, tasbeeh, amal tracking, and all bundled
+content work with no network connection, permanently. A thin server tier supports only the
+three things the device cannot determine alone — identity, entitlement, and content currency.
+
+- **Own server (cPanel PHP + MySQL)** — `/v1` API: accounts, entitlement, content manifest
+- **Firebase (free tier)** — FCM push, Crashlytics, Analytics, Remote Config
+- **BDApps** — carrier billing, consumed through the existing Amol365 endpoints
+
+Startup sequence: Splash → Onboarding → Subscription gate (optional, dismissible) → Login → Home
+
+Full specification: `docs/SRS-Backend-Auth-Subscription.md`
 
 ---
 
@@ -201,29 +209,27 @@ feature_name/
 |---|---|
 | Prayer times | ✅ |
 | Tasbeeh counter | ✅ (basic) |
-| Dua library | ✅ (limited — 30 duas) |
 | Qibla | ✅ |
 | Hadith of the day | ✅ |
 | Islamic calendar | ✅ |
 | Amal tracker | ✅ (basic 5 items) |
+| Surah collection | ✅ (8 popular) |
 
 ### Premium Tier — সাপ্তাহিক ৫ টাকা (Weekly 5 BDT)
 | Feature | Premium |
 |---|---|
-| Full dua library (200+ duas) | ✅ |
 | Full amal tracker (9 items + Tahajjud) | ✅ |
 | Hadith push notifications daily | ✅ |
-| Audio recitation for duas | ✅ |
 | All 114 surahs | ✅ |
 | 99 names of Allah full | ✅ |
 | Ramadan special mode | ✅ |
+| Audio recitation | ✅ |
 | Ad-free | ✅ |
 
 ### BDApps Integration Points
 - **Carrier Billing API** — weekly subscription charge (5 BDT)
-- **Push Notification API** — daily hadith, Ramadan alerts
+- **Subscription API** — subscribe / unsubscribe / status via OTP
 - **SMS API** — prayer time alerts for feature phone users (future)
-- **Subscription API** — manage subscribe/unsubscribe lifecycle
 
 ### Revenue Projection (Conservative)
 | Users | Weekly Rate | Monthly Revenue |
@@ -239,7 +245,6 @@ feature_name/
 ## Data Files Required (assets/data/)
 
 ```
-duas.json           — { id, arabic, transliteration, bangla, source, category }
 hadiths.json        — { id, arabic, bangla, narrator, source, bookRef }
 names_of_allah.json — { number, arabic, transliteration, bangla, meaning }
 surahs.json         — { number, arabicName, banglaName, verseCount, ayahs[] }
@@ -265,12 +270,12 @@ Download from: Google Fonts (Amiri), omicronlab.com (Kalpurush)
 |---|---|---|
 | হোম | HomeScreen | home |
 | আমল | AmalTrackerScreen | checklist |
-| দোয়া | DuaScreen | menu_book |
+| নামাজ | PrayerTimeScreen | access_time |
 | তাসবিহ | TasbeehScreen | loop |
 | রমজান | RamadanScreen | star |
 
 Additional screens accessible via home grid or more menu:
-Prayer Time, Qibla, Hadith, Islamic Calendar, 99 Names, Surah, Settings
+Qibla, Hadith, Islamic Calendar, 99 Names, Surah, Settings
 
 ---
 
@@ -280,7 +285,6 @@ Prayer Time, Qibla, Hadith, Islamic Calendar, 99 Names, Surah, Settings
 - [x] Project structure & architecture
 - [ ] Prayer time with GPS
 - [ ] Tasbeeh counter
-- [ ] Dua library (30 duas, JSON)
 - [ ] Basic amal tracker
 - [ ] Onboarding flow
 
@@ -289,19 +293,22 @@ Prayer Time, Qibla, Hadith, Islamic Calendar, 99 Names, Surah, Settings
 - [ ] Qibla compass
 - [ ] Islamic calendar with events
 - [ ] Hadith of the day
-- [ ] BDApps subscription integration
+- [ ] Populate `assets/data/` content files
 
-### Phase 3 — Premium & Polish
-- [ ] Full dua library (200+)
+### Phase 3 — Backend & Premium
+- [ ] `/v1` API + MySQL (SRS-Backend §M-1)
+- [ ] Email/password accounts (M-2)
+- [ ] BDApps subscription & entitlement (M-3, M-4)
+- [ ] FCM push, Crashlytics, Analytics (M-6)
+- [ ] Content sync (M-5)
 - [ ] All 114 surahs
 - [ ] 99 names of Allah
 - [ ] Audio recitation
 - [ ] Ramadan special mode
-- [ ] Push notifications via BDApps API
 - [ ] Widget support (prayer time home screen widget)
 
 ### Phase 4 — Growth
 - [ ] Social sharing (WhatsApp, Facebook)
-- [ ] Bengali TTS for duas
+- [ ] Bengali TTS
 - [ ] Offline Quran audio
 - [ ] BDApps App Store optimization

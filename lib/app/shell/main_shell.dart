@@ -12,7 +12,7 @@ class MainShell extends StatelessWidget {
   static const _tabs = [
     AppRoutes.home,
     AppRoutes.amalTracker,
-    AppRoutes.dua,
+    AppRoutes.prayerTime,
     AppRoutes.tasbeeh,
     AppRoutes.ramadan,
   ];

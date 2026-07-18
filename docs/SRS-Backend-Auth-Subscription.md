@@ -7,7 +7,7 @@
 **Document version:** 1.0
 **Date:** 2026-07-18
 **Author:** Rajon Talukdar
-**Companion to:** `docs/SRS.md` v1.0 (Dua removal, Namaz Time)
+**Companion to:** `docs/SRS.md` v2.0 (Namaz Time)
 
 ---
 
@@ -66,7 +66,7 @@ It is written **module-based**: each module (§5–§11) is separately specified
 
 ### 1.4 References
 
-- `docs/SRS.md` v1.0 — Dua removal and Namaz Time
+- `docs/SRS.md` v2.0 — Namaz Time
 - `FEATURES.md` — feature and business plan, including the free/premium tier table
 - Amol365 web application — reference implementation of the BDApps flow, at `/amol365`
 - BDApps subscription API: `https://developer.bdapps.com/subscription/*`
@@ -119,7 +119,7 @@ Observed behaviours that constrain this specification:
 | GB-01 | No server tier exists for this application. |
 | GB-02 | No user identity exists. Amal streaks, tasbeeh counts, and bookmarks are device-bound and lost on device change. |
 | GB-03 | No entitlement concept exists. `FEATURES.md` defines free and premium tiers, but every feature is currently unconditionally available. |
-| GB-04 | Content is bundled-only. Adding a dua requires shipping an APK. |
+| GB-04 | Content is bundled-only. Adding a hadith or surah requires shipping an APK. |
 | GB-05 | No crash reporting or analytics. Field failures on low-end Android devices are invisible. |
 | GB-06 | No push transport. `FEATURES.md` promises daily hadith notifications as a premium feature. |
 
@@ -135,7 +135,7 @@ The application becomes a **thin-server** product: a device-local app that consu
 ┌──────────────────────── Flutter client (offline-first) ─────────────────────┐
 │  Device-local (no network, ever):                                           │
 │    Prayer times (adhan) · Qibla · Tasbeeh · Amal tracker · Hijri calendar   │
-│    Bundled content (duas, hadiths, surahs, names)                           │
+│    Bundled content (hadiths, surahs, names of Allah)                        │
 │                                                                             │
 │  Server-dependent (degrades gracefully):                                    │
 │    Identity (M-2) · Entitlement (M-3) · Content updates (M-5)               │
@@ -698,7 +698,7 @@ Startup SHALL NOT block on any network call. Gate and login decisions SHALL be m
 
 ### 9.1 Overview
 
-Ships content updates without an APK release (GB-04). Directly relevant: `lib/assets/data/` is currently **empty**, and premium value (200+ duas, 114 surahs) is content, not code.
+Ships content updates without an APK release (GB-04). Directly relevant: `lib/assets/data/` is currently **empty**, and premium value (all 114 surahs, full 99 names, daily hadiths) is content, not code.
 
 ### 9.2 Functional Requirements
 
@@ -734,7 +734,7 @@ Content files SHALL be served as static files, CDN-cacheable, not generated per 
 | ID | Criterion |
 |---|---|
 | AC-C-01 | A fresh install with no network shows full bundled content. |
-| AC-C-02 | Publishing a new `duas` version updates the app within one sync cycle. |
+| AC-C-02 | Publishing a new `hadiths` version updates the app within one sync cycle. |
 | AC-C-03 | A corrupted download is rejected and the previous version is retained. |
 | AC-C-04 | Killing the app mid-download leaves content readable and uncorrupted. |
 | AC-C-05 | A free user cannot retrieve premium-only content by direct URL. |

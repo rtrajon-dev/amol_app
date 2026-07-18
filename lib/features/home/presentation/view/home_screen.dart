@@ -73,7 +73,7 @@ class _QuickAccessGrid extends StatelessWidget {
   final _items = const [
     _QuickItem(icon: Icons.access_time, label: 'নামাজের সময়', route: AppRoutes.prayerTime, color: AppColors.fajr),
     _QuickItem(icon: Icons.explore_outlined, label: 'কিবলা', route: AppRoutes.qibla, color: AppColors.success),
-    _QuickItem(icon: Icons.menu_book_outlined, label: 'দোয়া', route: AppRoutes.dua, color: AppColors.warning),
+    _QuickItem(icon: Icons.menu_book_outlined, label: 'হাদিস', route: AppRoutes.hadith, color: AppColors.warning),
     _QuickItem(icon: Icons.loop, label: 'তাসবিহ', route: AppRoutes.tasbeeh, color: AppColors.primaryLight),
     _QuickItem(icon: Icons.book_outlined, label: 'সূরা', route: AppRoutes.surah, color: AppColors.accent),
     _QuickItem(icon: Icons.calendar_month_outlined, label: 'ক্যালেন্ডার', route: AppRoutes.islamicCalendar, color: AppColors.asr),

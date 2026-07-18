@@ -5,8 +5,6 @@ import '../../features/home/presentation/view/home_screen.dart';
 import '../../features/onboarding/presentation/view/onboarding_screen.dart';
 import '../../features/prayer_time/presentation/view/prayer_time_screen.dart';
 import '../../features/tasbeeh/presentation/view/tasbeeh_screen.dart';
-import '../../features/dua/presentation/view/dua_screen.dart';
-import '../../features/dua/presentation/view/dua_detail_screen.dart';
 import '../../features/amal_tracker/presentation/view/amal_tracker_screen.dart';
 import '../../features/qibla/presentation/view/qibla_screen.dart';
 import '../../features/hadith/presentation/view/hadith_screen.dart';
@@ -41,17 +39,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.tasbeeh,
             builder: (_, _) => const TasbeehScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.dua,
-            builder: (_, _) => const DuaScreen(),
-            routes: [
-              GoRoute(
-                path: ':id',
-                builder: (_, state) =>
-                    DuaDetailScreen(id: state.pathParameters['id']!),
-              ),
-            ],
           ),
           GoRoute(
             path: AppRoutes.amalTracker,
