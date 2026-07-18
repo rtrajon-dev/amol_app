@@ -1,17 +1,8 @@
-# islamic_amol
+# amol365
 
-A new Flutter project.
+ইসলামিক আমল — Daily Islamic practice tracker for Bangladeshi Muslims.
+Distributed via BDApps (Robi / Airtel).
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Package: `com.bdapps.amol365`
+- Specs: `docs/SRS.md` (Namaz Time), `docs/SRS-Backend-Auth-Subscription.md` (backend, accounts, subscription)
+- Feature & business plan: `FEATURES.md`

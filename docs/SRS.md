@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS) — Namaz Time
 
-**Product:** ইসলামিক আমল (Islamic Amol)
-**Package:** com.bdapps.islamic_amol
+**Product:** Amol365 — ইসলামিক আমল
+**Package:** com.bdapps.amol365
 **Platform:** Android (primary), iOS (secondary)
 **Target market:** Bangladeshi Muslims, distributed via BDApps (Robi / Airtel)
 **Document version:** 2.0
@@ -108,7 +108,7 @@ An accurate baseline is required because Namaz Time is **partially implemented**
 
 ### 3.1 Product perspective
 
-Islamic Amol is a Flutter application using feature-first clean architecture with Riverpod state
+Amol365 is a Flutter application using feature-first clean architecture with Riverpod state
 management and `go_router` navigation. Prayer times are computed astronomically **on-device**,
 not fetched. Namaz Time has no server dependency of any kind and SHALL acquire none.
 

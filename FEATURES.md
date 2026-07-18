@@ -1,9 +1,9 @@
-# ইসলামিক আমল — Feature & Business Plan
+# Amol365 (ইসলামিক আমল) — Feature & Business Plan
 
 ## App Overview
 
-**App Name:** ইসলামিক আমল (Islamic Amol)  
-**Package:** com.bdapps.islamic_amol  
+**App Name:** Amol365 — ইসলামিক আমল  
+**Package:** com.bdapps.amol365  
 **Platform:** Android (primary), iOS  
 **Target Market:** Bangladeshi Muslims on Robi/Airtel via BDApps  
 **Language:** Bangla UI, Arabic content, English transliteration  

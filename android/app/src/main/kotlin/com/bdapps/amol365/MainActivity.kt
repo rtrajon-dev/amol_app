@@ -1,4 +1,4 @@
-package com.bdapps.islamic_amol
+package com.bdapps.amol365
 
 import io.flutter.embedding.android.FlutterActivity
 

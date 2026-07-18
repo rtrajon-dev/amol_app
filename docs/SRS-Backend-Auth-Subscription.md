@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS) — Backend, Authentication & Subscription
 
-**Product:** ইসলামিক আমল (Islamic Amol)
-**Package:** com.bdapps.islamic_amol
+**Product:** Amol365 — ইসলামিক আমল
+**Package:** com.bdapps.amol365
 **Platform:** Android (primary), iOS (secondary)
 **Target market:** Bangladeshi Muslims, distributed via BDApps (Robi / Airtel)
 **Document version:** 1.0
@@ -111,6 +111,7 @@ Observed behaviours that constrain this specification:
 | O-04 | `send_otp.php` sends hardcoded `applicationMetaData` (`device: 'Samsung S10'`, `os: 'android 8'`, a third-party `appCode`). | Accepted as-is. The Flutter client cannot and need not influence this. Recorded as AL-01. |
 | O-05 | `subscription_listener.php` appends callback events to a text file; it updates no database. | Renewal and involuntary-unsubscribe events are **not** persisted by the frozen tier. The `/v1` tier must therefore treat BDApps as the authority and revalidate on a TTL rather than rely on push callbacks (FR-S-14). |
 | O-06 | Scripts are session-based (`session_start()`) and CORS-open (`Access-Control-Allow-Origin: *`). | Sessions are irrelevant to a mobile client; the `/v1` tier calls them server-to-server and ignores cookies. |
+| O-07 | The scripts authenticate with a single `app_id` / `password` pair from `config.php`, tied to **one** BDApps application. | Amol365 mobile and Amol365 web are the **same BDApps application**, sharing one subscriber base. See §7.7. |
 
 ### 2.3 Baseline gaps
 
@@ -585,7 +586,33 @@ Per `FEATURES.md`. Restated here as the authoritative gating list:
 | Audio recitation | — | ✅ (deferred, §12.3) |
 | Ads | shown | removed |
 
-### 7.7 Non-Functional Requirements
+### 7.7 Shared subscriber base (web + mobile)
+
+Amol365 mobile and the Amol365 web application are **one BDApps application** sharing one
+`app_id` and one subscriber base (O-07). This is a product property, not an implementation
+detail, and it governs the following requirements.
+
+**FR-S-19 — One subscription per MSISDN, not per platform**
+A subscription is a property of the phone number, not of the client that created it. A user
+who subscribed via the web SHALL be recognised as premium in the mobile app on entering that
+number, with **no second charge**. The converse SHALL also hold.
+
+**FR-S-20 — Unsubscribe is global**
+Unsubscribing from the mobile app (FR-S-11) SHALL terminate the subscription for that MSISDN
+entirely, including web access. The Bangla confirmation dialog SHALL state this plainly, so the
+consequence is never a surprise.
+
+**FR-S-21 — Two identity systems, one entitlement**
+The web application identifies users by phone number (`login.php`: *"login = subscription status
+check"*). The mobile app identifies users by email and password (M-2). Both resolve to the same
+`entitlements` row keyed by `msisdn`. The `entitlements` table is therefore **shared state
+between two products** and SHALL NOT be schema-changed without considering the web app.
+
+**FR-S-22 — Revenue is counted once per subscriber**
+A subscriber active on both platforms is one subscriber generating 5 BDT/week, not two. Any
+projection or report SHALL count distinct MSISDNs, never per-platform sessions.
+
+### 7.8 Non-Functional Requirements
 
 | ID | Requirement |
 |---|---|
@@ -595,7 +622,7 @@ Per `FEATURES.md`. Restated here as the authoritative gating list:
 | NFR-S-04 | Entitlement evaluation SHALL be synchronous from cache — feature gating SHALL never await the network. |
 | NFR-S-05 | The module SHALL be deletable per M-7 with no compilation error outside its own directory, verified by test. |
 
-### 7.8 Acceptance criteria
+### 7.9 Acceptance criteria
 
 | ID | Criterion |
 |---|---|
@@ -612,8 +639,10 @@ Per `FEATURES.md`. Restated here as the authoritative gating list:
 | AC-S-11 | Unsubscribing revokes premium immediately and locked features re-lock. |
 | AC-S-12 | Subscribing before registering, then registering, binds the entitlement to the new account (FR-S-12). |
 | AC-S-13 | Deleting `lib/features/subscription/` and substituting the stub repository yields a clean `flutter analyze` (NFR-S-05). |
+| AC-S-14 | A number subscribed via the Amol365 **web** app is recognised as premium in the mobile app at the status check, with no OTP and no second charge (FR-S-19). |
+| AC-S-15 | Unsubscribing in the mobile app also ends web access for that number, and the confirmation dialog said so beforehand (FR-S-20). |
 
-### 7.9 Edge cases
+### 7.10 Edge cases
 
 | ID | Case | Required behaviour |
 |---|---|---|
