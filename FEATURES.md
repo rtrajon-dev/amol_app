@@ -192,7 +192,7 @@ The app is **offline-first**: prayer times, qibla, tasbeeh, amal tracking, and a
 content work with no network connection, permanently. A thin server tier supports only the
 three things the device cannot determine alone — identity, entitlement, and content currency.
 
-- **Own server (cPanel PHP + MySQL)** — `/v1` API: accounts, entitlement, content manifest
+- **Own server (cPanel PHP + MySQL)** — `/appbackend/v1` API: accounts, entitlement, content manifest
 - **Firebase (free tier)** — FCM push, Crashlytics, Analytics, Remote Config
 - **BDApps** — carrier billing, consumed through the existing Amol365 endpoints
 
@@ -296,7 +296,7 @@ Qibla, Hadith, Islamic Calendar, 99 Names, Surah, Settings
 - [ ] Populate `assets/data/` content files
 
 ### Phase 3 — Backend & Premium
-- [ ] `/v1` API + MySQL (SRS-Backend §M-1)
+- [ ] `/appbackend/v1` API + MySQL (SRS-Backend §M-1)
 - [ ] Email/password accounts (M-2)
 - [ ] BDApps subscription & entitlement (M-3, M-4)
 - [ ] FCM push, Crashlytics, Analytics (M-6)

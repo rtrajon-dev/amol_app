@@ -107,10 +107,10 @@ Observed behaviours that constrain this specification:
 |---|---|---|
 | O-01 | All four scripts normalise `01XXXXXXXXX`, `8801XXXXXXXXX`, `88 01XXXXXXXXX` to `01XXXXXXXXX`, then validate against `/^01[3-9][0-9]{8}$/`. | The client need not normalise, but SHOULD validate to give fast local feedback (FR-S-02). |
 | O-02 | `check_subscription.php` returns a precomputed boolean `isSubscribed` (`subscriptionStatus === 'REGISTERED'`). | The client consumes `isSubscribed`; it does not interpret raw BDApps status codes. |
-| O-03 | `verify_otp.php` returns BDApps' response verbatim without deciding success. | Success determination (`statusCode === 'S1000'`) happens in the `/v1` layer, not the client (FR-BE-05). |
+| O-03 | `verify_otp.php` returns BDApps' response verbatim without deciding success. | Success determination (`statusCode === 'S1000'`) happens in the `/appbackend/v1` layer, not the client (FR-BE-05). |
 | O-04 | `send_otp.php` sends hardcoded `applicationMetaData` (`device: 'Samsung S10'`, `os: 'android 8'`, a third-party `appCode`). | Accepted as-is. The Flutter client cannot and need not influence this. Recorded as AL-01. |
-| O-05 | `subscription_listener.php` appends callback events to a text file; it updates no database. | Renewal and involuntary-unsubscribe events are **not** persisted by the frozen tier. The `/v1` tier must therefore treat BDApps as the authority and revalidate on a TTL rather than rely on push callbacks (FR-S-14). |
-| O-06 | Scripts are session-based (`session_start()`) and CORS-open (`Access-Control-Allow-Origin: *`). | Sessions are irrelevant to a mobile client; the `/v1` tier calls them server-to-server and ignores cookies. |
+| O-05 | `subscription_listener.php` appends callback events to a text file; it updates no database. | Renewal and involuntary-unsubscribe events are **not** persisted by the frozen tier. The `/appbackend/v1` tier must therefore treat BDApps as the authority and revalidate on a TTL rather than rely on push callbacks (FR-S-14). |
+| O-06 | Scripts are session-based (`session_start()`) and CORS-open (`Access-Control-Allow-Origin: *`). | Sessions are irrelevant to a mobile client; the `/appbackend/v1` tier calls them server-to-server and ignores cookies. |
 | O-07 | The scripts authenticate with a single `app_id` / `password` pair from `config.php`, tied to **one** BDApps application. | Amol365 mobile and Amol365 web are the **same BDApps application**, sharing one subscriber base. See §7.7. |
 
 ### 2.3 Baseline gaps
@@ -144,7 +144,7 @@ The application becomes a **thin-server** product: a device-local app that consu
               │ dio, HTTPS, JSON                    │ Firebase SDK
               ▼                                     ▼
 ┌──────────── Own server (cPanel/VPS) ──────┐  ┌─── Firebase (free tier) ────┐
-│  /v1/*   versioned public API             │  │  FCM · Crashlytics ·        │
+│  /appbackend/v1/*  versioned public API   │  │  FCM · Crashlytics ·        │
 │  MySQL   users, entitlements, devices     │  │  Analytics · Remote Config  │
 │  Static  content manifest + JSON + CDN    │  └─────────────────────────────┘
 │                                           │
@@ -167,7 +167,7 @@ The application becomes a **thin-server** product: a device-local app that consu
 | Existing competence | The production BDApps integration is already PHP. Reusing that stack removes an entire class of integration risk. |
 | Push / crash / analytics | Firebase is free, unmetered at this scale, and has no self-hosted equivalent worth building. Adopted without reservation. |
 
-**Consequence:** the migration path is preserved. Because the client speaks only to `/v1/*` (C-BE-03), moving from shared cPanel to a VPS is a DNS change, and replacing the backend entirely is an implementation swap behind unchanged repository interfaces.
+**Consequence:** the migration path is preserved. Because the client speaks only to `/appbackend/v1/*` (C-BE-03), moving from shared cPanel to a VPS is a DNS change, and replacing the backend entirely is an implementation swap behind unchanged repository interfaces.
 
 ### 3.3 User classes
 
@@ -183,9 +183,9 @@ The application becomes a **thin-server** product: a device-local app that consu
 
 | ID | Constraint |
 |---|---|
-| C-BE-01 | **The `/amol365/bdapps/` PHP scripts are a frozen contract.** This project SHALL NOT modify, refactor, or "fix" them. The `/v1` tier invokes them unmodified, server-to-server. Any defect found in them is recorded as an accepted limitation (§13), not a work item. |
+| C-BE-01 | **The `/amol365/bdapps/` PHP scripts are a frozen contract.** This project SHALL NOT modify, refactor, or "fix" them. The `/appbackend/v1` tier invokes them unmodified, server-to-server. Any defect found in them is recorded as an accepted limitation (§13), not a work item. |
 | C-BE-02 | The Amol365 web application SHALL continue to function unchanged throughout. Both clients share the frozen scripts concurrently. |
-| C-BE-03 | The Flutter client SHALL call only `/v1/*` endpoints. It SHALL NOT call `developer.bdapps.com` directly, and SHALL NOT call `/bdapps/*.php` directly. |
+| C-BE-03 | The Flutter client SHALL call only `/appbackend/v1/*` endpoints. It SHALL NOT call `developer.bdapps.com` directly, and SHALL NOT call `/bdapps/*.php` directly. |
 | C-BE-04 | BDApps credentials (`app_id`, `password`) SHALL NOT be present in the Flutter binary, in any form, at any time. |
 | C-BE-05 | No feature that functions offline today SHALL acquire a network dependency. This is the governing constraint of this document. |
 | C-BE-06 | Feature-first clean architecture (`data/`, `domain/`, `presentation/`) SHALL be preserved for all new modules. |
@@ -193,6 +193,7 @@ The application becomes a **thin-server** product: a device-local app that consu
 | C-BE-08 | The subscription module SHALL be removable by deleting one directory and substituting one class (M-7). No other module may import from it. |
 | C-BE-09 | All network traffic SHALL be HTTPS. Plaintext HTTP SHALL be refused by the client. |
 | C-BE-10 | The app SHALL remain installable and usable on Android 6.0 (API 23). |
+| C-BE-11 | **All server files SHALL reside inside the web root.** No component may depend on storage above the document root. Files that must not be HTTP-reachable are protected by `.htaccess` instead (FR-BE-12). This is a deployment-simplicity decision by the product owner; §13 AL-07 records its consequence. |
 
 ### 3.5 Assumptions and dependencies
 
@@ -207,7 +208,7 @@ The application becomes a **thin-server** product: a device-local app that consu
 
 | ID | Module | Depends on | Shippable independently | Removable |
 |---|---|---|---|---|
-| M-1 | Backend Platform & `/v1` API | — | Yes (server-only) | No |
+| M-1 | Backend Platform & `/appbackend/v1` API | — | Yes (server-only) | No |
 | M-2 | Identity & Authentication | M-1 | Yes | No |
 | M-3 | Subscription & Entitlement | M-1 | Yes | **Yes** (M-7) |
 | M-4 | Startup Gate & Navigation | M-2, M-3 | No | No |
@@ -219,7 +220,7 @@ The application becomes a **thin-server** product: a device-local app that consu
 
 ---
 
-## 5. Module M-1 — Backend Platform & `/v1` API
+## 5. Module M-1 — Backend Platform & `/appbackend/v1` API
 
 ### 5.1 Overview
 
@@ -228,7 +229,7 @@ A versioned JSON API on the existing hosting account, serving as the sole server
 ### 5.2 Functional Requirements
 
 **FR-BE-01 — Versioned namespace**
-All mobile-facing endpoints SHALL live under `/v1/`. The version segment SHALL change only on a breaking contract change. Released APKs pin to a version and SHALL continue to function after `/v2/` is introduced.
+All mobile-facing endpoints SHALL live under `/appbackend/v1/`. The `appbackend` segment names the tier; the `v1` segment carries the contract version and SHALL change only on a breaking change. Released APKs pin to a version and SHALL continue to function after `/appbackend/v2/` is introduced alongside it. The version segment SHALL NOT be omitted — a released APK cannot be re-pointed, so an unversioned path would make every breaking change a forced-update event.
 
 **FR-BE-02 — Uniform envelope**
 Every response SHALL use:
@@ -242,28 +243,28 @@ Every response SHALL use:
 
 | Endpoint | Auth | Purpose | Module |
 |---|---|---|---|
-| `POST /v1/auth/register` | — | Create account | M-2 |
-| `POST /v1/auth/login` | — | Obtain tokens | M-2 |
-| `POST /v1/auth/refresh` | Refresh token | Rotate access token | M-2 |
-| `POST /v1/auth/logout` | Access token | Revoke refresh token | M-2 |
-| `POST /v1/auth/forgot-password` | — | Send reset email | M-2 |
-| `POST /v1/auth/reset-password` | Reset token | Set new password | M-2 |
-| `GET  /v1/auth/me` | Access token | Current user + entitlement | M-2 |
-| `POST /v1/subscription/status` | Optional | Check subscription for a number | M-3 |
-| `POST /v1/subscription/otp/request` | Optional | Begin OTP subscribe | M-3 |
-| `POST /v1/subscription/otp/verify` | Optional | Complete OTP subscribe | M-3 |
-| `POST /v1/subscription/cancel` | Access token | Unsubscribe | M-3 |
-| `POST /v1/bdapps/notify` | BDApps | Receive carrier callbacks | M-3 |
-| `GET  /v1/content/manifest` | — | Content version manifest | M-5 |
-| `POST /v1/device/register` | Access token | Register FCM token | M-6 |
+| `POST /appbackend/v1/auth/register` | — | Create account | M-2 |
+| `POST /appbackend/v1/auth/login` | — | Obtain tokens | M-2 |
+| `POST /appbackend/v1/auth/refresh` | Refresh token | Rotate access token | M-2 |
+| `POST /appbackend/v1/auth/logout` | Access token | Revoke refresh token | M-2 |
+| `POST /appbackend/v1/auth/forgot-password` | — | Send reset email | M-2 |
+| `POST /appbackend/v1/auth/reset-password` | Reset token | Set new password | M-2 |
+| `GET  /appbackend/v1/auth/me` | Access token | Current user + entitlement | M-2 |
+| `POST /appbackend/v1/subscription/status` | Optional | Check subscription for a number | M-3 |
+| `POST /appbackend/v1/subscription/otp/request` | Optional | Begin OTP subscribe | M-3 |
+| `POST /appbackend/v1/subscription/otp/verify` | Optional | Complete OTP subscribe | M-3 |
+| `POST /appbackend/v1/subscription/cancel` | Access token | Unsubscribe | M-3 |
+| `POST /appbackend/v1/bdapps/notify` | BDApps | Receive carrier callbacks | M-3 |
+| `GET  /appbackend/v1/content/manifest` | — | Content version manifest | M-5 |
+| `POST /appbackend/v1/device/register` | Access token | Register FCM token | M-6 |
 
 **FR-BE-04 — Invocation of frozen scripts**
-`/v1/subscription/*` SHALL fulfil requests by invoking the corresponding `/bdapps/*.php` script over local HTTP or by direct `include`, with the request body those scripts already expect (§2.2). The scripts SHALL NOT be modified (C-BE-01). Where a frozen script's response is insufficient, the `/v1` layer SHALL enrich it — never patch the script.
+`/appbackend/v1/subscription/*` SHALL fulfil requests by invoking the corresponding `/bdapps/*.php` script with the request body those scripts already expect (§2.2). The invocation mechanism is specified in FR-BE-14. The scripts SHALL NOT be modified (C-BE-01). Where a frozen script's response is insufficient, the `/appbackend/v1` layer SHALL enrich it — never patch the script.
 
 **FR-BE-05 — Translation of BDApps semantics**
-The `/v1` layer SHALL translate carrier vocabulary into product vocabulary. The client SHALL never receive `statusCode`, `S1000`, `REGISTERED`, `referenceNo`, or `subscriberId`.
+The `/appbackend/v1` layer SHALL translate carrier vocabulary into product vocabulary. The client SHALL never receive `statusCode`, `S1000`, `REGISTERED`, `referenceNo`, or `subscriberId`.
 
-| Frozen response | `/v1` translation |
+| Frozen response | `/appbackend/v1` translation |
 |---|---|
 | `isSubscribed: true` | `entitlement: "premium"` |
 | `subscriptionStatus: "REGISTERED"` | `entitlement: "premium"` |
@@ -273,10 +274,10 @@ The `/v1` layer SHALL translate carrier vocabulary into product vocabulary. The 
 | cURL failure / timeout / HTML response | `ok: false`, `error.code: "CARRIER_UNAVAILABLE"` |
 
 **FR-BE-06 — `referenceNo` confinement**
-The BDApps `referenceNo` SHALL NOT be transmitted to the client. The `/v1` layer SHALL issue an opaque `txnId`, store the `txnId → referenceNo` mapping server-side with a 10-minute expiry, and resolve it on verify.
+The BDApps `referenceNo` SHALL NOT be transmitted to the client. The `/appbackend/v1` layer SHALL issue an opaque `txnId`, store the `txnId → referenceNo` mapping server-side with a 10-minute expiry, and resolve it on verify.
 
 **FR-BE-07 — Rate limiting**
-`/v1/subscription/otp/request` SHALL be limited to 3 requests per phone number per 15 minutes and 20 per IP per hour. `/v1/auth/login` SHALL be limited to 10 attempts per email per 15 minutes. Exceeding a limit SHALL return `RATE_LIMITED` with a Bangla message stating when to retry. *(This limiting lives in the `/v1` tier; it does not modify the frozen scripts.)*
+`/appbackend/v1/subscription/otp/request` SHALL be limited to 3 requests per phone number per 15 minutes and 20 per IP per hour. `/appbackend/v1/auth/login` SHALL be limited to 10 attempts per email per 15 minutes. Exceeding a limit SHALL return `RATE_LIMITED` with a Bangla message stating when to retry. *(This limiting lives in the `/appbackend/v1` tier; it does not modify the frozen scripts.)*
 
 **FR-BE-08 — Request identification**
 Every request SHALL carry `X-App-Version`, `X-Platform` (`android` | `ios`), and `X-Device-Id` (an app-generated UUID, `uuid` package). These SHALL be logged for support and abuse triage.
@@ -285,12 +286,74 @@ Every request SHALL carry `X-App-Version`, `X-Platform` (`android` | `ios`), and
 Every response SHALL include `minSupportedVersion`. A client below it SHALL present a blocking Bangla update prompt. This is the escape hatch for a breaking change that cannot be versioned away.
 
 **FR-BE-10 — Server-side logging hygiene**
-Logs written by the `/v1` tier SHALL be stored outside the web root and SHALL NOT record passwords, password hashes, OTP values, `referenceNo` values, or BDApps credentials. *(Applies to new code only; the frozen tier's logging is out of scope per C-BE-01 and recorded as AL-02.)*
+Logs written by the `/appbackend/v1` tier SHALL be stored under `appbackend/internal/logs/`, protected per FR-BE-12, and SHALL NOT record passwords, password hashes, OTP values, `referenceNo` values, or BDApps credentials. *(Applies to new code only; the frozen tier's logging is out of scope per C-BE-01 and recorded as AL-02.)*
+
+**FR-BE-12 — Internal file protection**
+Files that are never a valid HTTP endpoint — shared PHP classes and log files — SHALL reside in `appbackend/internal/` and SHALL be unreachable over HTTP. Protection SHALL be an `.htaccess` containing `Require all denied` (with `Deny from all` for Apache 2.2 compatibility).
+
+This works because `.htaccess` governs **HTTP** access only: `require __DIR__ . '/internal/Db.php'` is a filesystem read and is unaffected. The internal directory SHALL contain at minimum `Db.php`, `Jwt.php`, `Response.php`, `RateLimiter.php`, `BdappsClient.php`, and `logs/`.
+
+**FR-BE-13 — Migrations are not deployed**
+Schema migrations SHALL be maintained as numbered `.sql` files in the source repository and applied manually via phpMyAdmin or the MySQL CLI. They SHALL NOT be uploaded to the server. *(A `.sql` file is not executed by PHP; if served it is delivered as plaintext, disclosing the full schema. Not deploying it removes the exposure entirely rather than mitigating it.)*
 
 **FR-BE-11 — Timeouts**
 Outbound calls to the frozen scripts SHALL time out at 20 seconds. The client's own timeout SHALL be 30 seconds, so the server always fails first and returns a typed error rather than the client guessing.
 
-### 5.3 Data Requirements — MySQL schema
+### 5.3 Deployment layout
+
+All server files SHALL reside **inside the web root** (C-BE-11). The tier is a single new
+directory beside the existing web application; nothing existing is moved or modified.
+
+```
+public_html/                          ← Amol365 web app document root
+├── index.php, login.php, account.php …   ← existing, UNTOUCHED
+├── config.php                            ← existing; gains a 'db' block
+├── .env                                  ← existing; gains DB_* keys
+├── bdapps/                               ← FROZEN (C-BE-01). Never modified.
+│   └── check_subscription.php, send_otp.php, verify_otp.php,
+│       unsubscribe.php, subscription_listener.php, sms.php, …
+│
+├── appbackend/                       ← ★ the entire mobile server tier
+│   └── v1/
+│       ├── .htaccess                 routing; deny non-PHP
+│       ├── index.php                 front controller
+│       ├── auth/                     register, login, refresh, logout,
+│       │                             forgot-password, reset-password, me
+│       ├── subscription/             status, otp/request, otp/verify, cancel
+│       ├── bdapps/notify.php         carrier callback → MySQL
+│       ├── content/manifest.php
+│       ├── device/register.php
+│       │
+│       └── internal/                 ← FR-BE-12: no HTTP access
+│           ├── .htaccess             Require all denied
+│           ├── Db.php, Jwt.php, Response.php,
+│           │   RateLimiter.php, BdappsClient.php
+│           └── logs/app.log          (directory must be writable)
+│
+└── content/v1/                       static JSON, CDN-cacheable (M-5)
+    └── hadiths.v1.json, surahs.v1.json, names.v1.json
+```
+
+Kept in the source repository and **not** deployed (FR-BE-13):
+
+```
+migrations/   001_users.sql, 002_entitlements.sql, 003_otp_transactions.sql, …
+```
+
+**FR-BE-14 — Invocation of frozen scripts is by loopback HTTP**
+`BdappsClient.php` SHALL call the frozen scripts over loopback HTTPS at their public URLs
+(e.g. `https://amol.patawise.com/bdapps/check_subscription.php`), posting the form fields
+those scripts already expect (§2.2). Direct `include` SHALL NOT be used: the frozen scripts
+call `header()` and `echo` at top level, which would corrupt the `/appbackend/v1` response
+envelope (FR-BE-02). The loopback hop is negligible against a carrier round-trip and
+guarantees the frozen files are neither modified nor executed out of context (C-BE-01).
+
+**FR-BE-15 — Deployment verification**
+After deployment, `GET /appbackend/v1/internal/Db.php` SHALL return **403 Forbidden**. A
+response containing PHP source, a blank page, or a 200 indicates `.htaccess` is not being
+honoured and the deployment SHALL be treated as failed (AC-BE-09).
+
+### 5.4 Data Requirements — MySQL schema
 
 ```
 users
@@ -361,20 +424,20 @@ bdapps_events                                    -- what the frozen listener doe
 
 **Rationale for `entitlements.user_id` being nullable:** the subscription gate precedes login (§8). A user may subscribe by phone number before an account exists. The row is created with `user_id = NULL` and reconciled at first login from the same device (FR-S-12).
 
-### 5.4 Non-Functional Requirements
+### 5.5 Non-Functional Requirements
 
 | ID | Category | Requirement |
 |---|---|---|
 | NFR-BE-01 | Availability | Server unavailability SHALL NOT prevent access to any offline-capable feature (C-BE-05). |
-| NFR-BE-02 | Latency | `/v1/auth/*` and `/v1/content/manifest` SHALL respond within 800 ms p95, excluding carrier round-trips. |
-| NFR-BE-03 | Latency | `/v1/subscription/*` SHALL respond within 20 s worst case (FR-BE-11), bounded by the carrier. |
+| NFR-BE-02 | Latency | `/appbackend/v1/auth/*` and `/appbackend/v1/content/manifest` SHALL respond within 800 ms p95, excluding carrier round-trips. |
+| NFR-BE-03 | Latency | `/appbackend/v1/subscription/*` SHALL respond within 20 s worst case (FR-BE-11), bounded by the carrier. |
 | NFR-BE-04 | Capacity | The design SHALL support 20,000 daily active users on shared hosting, given that entitlement is checked at most once per device per 24 h (FR-S-14) and content is served as static files (M-5). |
 | NFR-BE-05 | Security | Passwords SHALL be hashed with bcrypt (cost ≥ 10) via `password_hash()`. Plaintext or reversible storage is prohibited. |
 | NFR-BE-06 | Security | TLS 1.2+ on all endpoints. HTTP SHALL redirect to HTTPS server-side and be refused client-side (C-BE-09). |
 | NFR-BE-07 | Privacy | Phone numbers SHALL be stored only in `entitlements`, `otp_transactions`, and `bdapps_events`, and SHALL NOT be exposed by any read endpoint except masked (`01XXXXX1234`). |
 | NFR-BE-08 | Portability | No endpoint SHALL depend on cPanel-specific behaviour. The tier SHALL be relocatable to a VPS without client changes. |
 
-### 5.5 Acceptance criteria
+### 5.6 Acceptance criteria
 
 | ID | Criterion |
 |---|---|
@@ -382,10 +445,14 @@ bdapps_events                                    -- what the frozen listener doe
 | AC-BE-02 | `git status` in the Amol365 repository shows no modification to `bdapps/` after this module ships (C-BE-01). |
 | AC-BE-03 | The Amol365 web subscribe and login flows continue to work end-to-end (C-BE-02). |
 | AC-BE-04 | Static analysis of the release APK finds no BDApps `app_id` or `password` (C-BE-04). |
-| AC-BE-05 | No `/v1` response body anywhere contains `referenceNo`, `subscriberId`, or `statusCode` (FR-BE-05, FR-BE-06). |
+| AC-BE-05 | No `/appbackend/v1` response body anywhere contains `referenceNo`, `subscriberId`, or `statusCode` (FR-BE-05, FR-BE-06). |
 | AC-BE-06 | A 4th OTP request for one number inside 15 minutes returns `RATE_LIMITED` (FR-BE-07). |
-| AC-BE-07 | With `developer.bdapps.com` unreachable, `/v1/subscription/status` returns `CARRIER_UNAVAILABLE` within 20 s — it does not hang or return HTML. |
+| AC-BE-07 | With `developer.bdapps.com` unreachable, `/appbackend/v1/subscription/status` returns `CARRIER_UNAVAILABLE` within 20 s — it does not hang or return HTML. |
 | AC-BE-08 | An expired `txnId` cannot be used to verify an OTP. |
+| AC-BE-09 | `GET /appbackend/v1/internal/Db.php` returns 403; no PHP source is disclosed (FR-BE-12, FR-BE-15). |
+| AC-BE-10 | `GET /appbackend/v1/internal/logs/app.log` returns 403. |
+| AC-BE-11 | No `.sql` file is reachable anywhere under the document root (FR-BE-13). |
+| AC-BE-12 | Endpoints function normally with `internal/` protected — confirming `.htaccess` blocks HTTP but not `require` (FR-BE-12). |
 
 ---
 
@@ -509,16 +576,16 @@ No feature module SHALL reference BDApps, MSISDN, OTP, or carrier state (C-BE-08
 The subscription screen SHALL accept a Bangladeshi mobile number, validating `^01[3-9][0-9]{8}$` locally for immediate feedback before any network call (O-01). The keyboard SHALL be numeric. Input SHALL be formatted for readability but transmitted unformatted.
 
 **FR-S-03 — Status check**
-On submit, the app SHALL call `/v1/subscription/status`. If `entitlement == premium`, the flow completes immediately with a success state — **no OTP is requested** (US-S-01).
+On submit, the app SHALL call `/appbackend/v1/subscription/status`. If `entitlement == premium`, the flow completes immediately with a success state — **no OTP is requested** (US-S-01).
 
 **FR-S-04 — OTP request**
-If not subscribed, the app SHALL call `/v1/subscription/otp/request`, store the returned `txnId` in memory only, and advance to OTP entry.
+If not subscribed, the app SHALL call `/appbackend/v1/subscription/otp/request`, store the returned `txnId` in memory only, and advance to OTP entry.
 
 **FR-S-05 — OTP entry**
 A 4–6 digit numeric field with a visible countdown until resend is permitted (60 s), and a resend action thereafter, bounded by FR-BE-07.
 
 **FR-S-06 — OTP verification**
-Verification SHALL call `/v1/subscription/otp/verify` with `txnId` and the entered code. Success SHALL persist entitlement (FR-S-13) and complete the flow. Failure SHALL show a specific Bangla message and permit retry without restarting from the number screen.
+Verification SHALL call `/appbackend/v1/subscription/otp/verify` with `txnId` and the entered code. Success SHALL persist entitlement (FR-S-13) and complete the flow. Failure SHALL show a specific Bangla message and permit retry without restarting from the number screen.
 
 **FR-S-07 — OTP expiry**
 A `txnId` older than 10 minutes SHALL return `OTP_EXPIRED`; the UI SHALL offer to resend rather than dead-ending.
@@ -536,7 +603,7 @@ Because FR-S-09 permanently silences the gate, the flow SHALL remain reachable f
 Absent these, a user who dismisses once could never subscribe, and the revenue model would fail.
 
 **FR-S-11 — Unsubscribe**
-Settings SHALL offer unsubscribe for premium users, calling `/v1/subscription/cancel` behind a Bangla confirmation dialog. On success, entitlement SHALL drop to `free` immediately and the cache SHALL be invalidated.
+Settings SHALL offer unsubscribe for premium users, calling `/appbackend/v1/subscription/cancel` behind a Bangla confirmation dialog. On success, entitlement SHALL drop to `free` immediately and the cache SHALL be invalidated.
 
 **FR-S-12 — Account reconciliation**
 Because the gate precedes login (§8), a subscription may be created before an account exists. On first successful login from a device that completed subscription, the client SHALL send its `X-Device-Id`, and the server SHALL bind the orphaned `entitlements` row (`user_id IS NULL`) to that `user_id`. Binding SHALL be idempotent.
@@ -735,7 +802,7 @@ Ships content updates without an APK release (GB-04). Directly relevant: `lib/as
 The app SHALL ship a complete v1 of every content file in `lib/assets/data/`. The app SHALL be fully functional with no network and no sync, forever.
 
 **FR-C-02 — Manifest**
-`GET /v1/content/manifest` SHALL return per-file `version`, `url`, `sha256`, and `bytes`.
+`GET /appbackend/v1/content/manifest` SHALL return per-file `version`, `url`, `sha256`, and `bytes`.
 
 **FR-C-03 — Differential download**
 Only files whose manifest version exceeds the local version SHALL be downloaded.
@@ -775,7 +842,7 @@ Content files SHALL be served as static files, CDN-cacheable, not generated per 
 ### 10.1 Functional Requirements
 
 **FR-P-01 — FCM**
-Firebase Cloud Messaging SHALL be the push transport. Tokens SHALL be registered via `/v1/device/register` and refreshed on rotation.
+Firebase Cloud Messaging SHALL be the push transport. Tokens SHALL be registered via `/appbackend/v1/device/register` and refreshed on rotation.
 
 **FR-P-02 — Daily hadith**
 Premium users with the setting enabled SHALL receive one daily hadith push, deep-linking to the hadith screen (`FEATURES.md`).
@@ -825,7 +892,7 @@ No file outside `lib/features/subscription/` SHALL import from `lib/features/sub
 The interface SHALL accommodate, without changes to any consuming code:
 - `AlwaysPremiumRepository` — BDApps withdrawn, everything free
 - `IapSubscriptionRepository` — Play Billing / StoreKit
-- `ServerEntitlementRepository` — entitlement from `/v1/auth/me` alone
+- `ServerEntitlementRepository` — entitlement from `/appbackend/v1/auth/me` alone
 
 **FR-R-04 — Data retention**
 On decommissioning, `entitlements` rows SHALL be retained for reconciliation and refunds. `otp_transactions` SHALL be purged.
@@ -884,11 +951,12 @@ Consequences of C-BE-01 (frozen scripts) and of the platform. Recorded deliberat
 | ID | Limitation | Why accepted |
 |---|---|---|
 | AL-01 | `send_otp.php` transmits hardcoded device metadata (O-04). | Frozen contract. No functional impact on subscription success. |
-| AL-02 | The frozen scripts write diagnostic files into their own web-served directory (O-05). | Frozen contract (C-BE-01). Out of scope for this project; new `/v1` code follows FR-BE-10 instead. |
+| AL-02 | The frozen scripts write diagnostic files into their own web-served directory (O-05). | Frozen contract (C-BE-01). Out of scope for this project; new `/appbackend/v1` code follows FR-BE-10 instead. |
 | AL-03 | Carrier callbacks are not persisted by the frozen tier (O-05). | Mitigated by TTL revalidation (FR-S-14) rather than by modifying the frozen tier. |
 | AL-04 | Carrier number recycling could transfer an entitlement to a new owner. | Rare; detected at the next revalidation; industry-standard exposure for carrier billing. |
 | AL-05 | Email deliverability from shared hosting is unreliable, affecting password reset. | Mitigated by not gating on email verification (FR-A-10). Revisit with a transactional email provider if reset failures are reported. |
 | AL-06 | OEM battery managers may delay FCM delivery. | Platform limitation, as already recorded in `docs/SRS.md` §3.5. |
+| AL-07 | Internal files are protected by `.htaccess` (FR-BE-12) rather than by residing above the document root. `.htaccess` is configuration: if the file is deleted, or the host ever disables `AllowOverride`, protection is lost silently and `Jwt.php` (token-signing secret) and `Db.php` (database credentials) become plaintext-readable. | Accepted per C-BE-11 in exchange for deployment simplicity. The exposure profile matches that of the existing `config.php` and `.env`, which already sit in the web root, so it introduces no new class of risk to this hosting account. Mitigated by AC-BE-09/AC-BE-10 as post-deployment checks; these SHALL be re-run after any host migration or control-panel change. |
 
 ---
 
@@ -920,6 +988,7 @@ Consequences of C-BE-01 (frozen scripts) and of the platform. Recorded deliberat
 | C-BE-04 | AC-BE-04 |
 | C-BE-05 | AC-A-03, AC-G-04, AC-S-08, AC-P-03, AC-C-01 |
 | C-BE-08 | AC-S-13, AC-R-01, AC-R-02 |
+| C-BE-11 | FR-BE-12, FR-BE-13, AC-BE-09 … AC-BE-12, AL-07 |
 
 ---
 
@@ -927,7 +996,7 @@ Consequences of C-BE-01 (frozen scripts) and of the platform. Recorded deliberat
 
 | Release | Modules | Content | Gate |
 |---|---|---|---|
-| 3.0 | M-1 | Server tier, `/v1` API, MySQL schema. **No client change.** | AC-BE-01 … AC-BE-08 |
+| 3.0 | M-1 | Server tier, `/appbackend/v1` API, MySQL schema. **No client change.** | AC-BE-01 … AC-BE-12 |
 | 3.1 | M-2 | Email/password auth; login inserted before Home | AC-A-01 … AC-A-08 |
 | 3.2 | M-3, M-4 | Subscription gate, entitlement, premium gating, full startup sequence | AC-S-01 … AC-S-13, AC-G-01 … AC-G-07 |
 | 3.3 | M-6 | FCM, Crashlytics, Analytics, Remote Config | AC-P-01 … AC-P-05 |
