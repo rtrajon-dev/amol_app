@@ -1,0 +1,93 @@
+{
+  "_meta": {
+    "content": "quran-selected-passages",
+    "version": 1,
+    "verified": false,
+    "review_required": "MUST NOT SHIP UNVERIFIED. Every Arabic letter and diacritic requires line-by-line checking against a printed mushaf or Tanzil.net by a qualified reviewer (hafiz/alim) before public release. See docs/CONTENT.md.",
+    "scope": "Deliberately limited to short, universally-memorised passages so a human can verify the whole file. Long surahs (Al-Baqarah, Ya-Sin, Ar-Rahman, Al-Mulk) are intentionally ABSENT — they must be ingested from a verified digital edition, never typed by hand.",
+    "translation_note": "Bangla is a plain-sense rendering written for this app to avoid copyright on existing published translations. It is a meaning-summary, not an authoritative tafsir, and needs review.",
+    "script": "Imlaei (simple) orthography with diacritics."
+  },
+  "items": [
+    {
+      "number": 1,
+      "arabicName": "الفاتحة",
+      "banglaName": "আল-ফাতিহা",
+      "transliteration": "Al-Fatihah",
+      "verseCount": 7,
+      "revelationType": "Meccan",
+      "banglaMeaning": "সূচনা",
+      "ayahs": [
+        { "number": 1, "arabic": "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ", "bangla": "পরম করুণাময় অসীম দয়ালু আল্লাহর নামে।", "transliteration": "Bismillahir Rahmanir Rahim" },
+        { "number": 2, "arabic": "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ", "bangla": "সমস্ত প্রশংসা আল্লাহর, যিনি সকল সৃষ্টিজগতের প্রতিপালক।", "transliteration": "Alhamdu lillahi Rabbil 'alamin" },
+        { "number": 3, "arabic": "الرَّحْمَٰنِ الرَّحِيمِ", "bangla": "যিনি পরম করুণাময়, অসীম দয়ালু।", "transliteration": "Ar-Rahmanir Rahim" },
+        { "number": 4, "arabic": "مَالِكِ يَوْمِ الدِّينِ", "bangla": "যিনি বিচার দিনের মালিক।", "transliteration": "Maliki yawmid-din" },
+        { "number": 5, "arabic": "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ", "bangla": "আমরা কেবল আপনারই ইবাদত করি এবং কেবল আপনারই সাহায্য চাই।", "transliteration": "Iyyaka na'budu wa iyyaka nasta'in" },
+        { "number": 6, "arabic": "اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ", "bangla": "আমাদের সরল পথ দেখান।", "transliteration": "Ihdinas-siratal-mustaqim" },
+        { "number": 7, "arabic": "صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ", "bangla": "তাদের পথ, যাদের প্রতি আপনি অনুগ্রহ করেছেন; তাদের নয় যারা অভিশপ্ত, আর নয় পথভ্রষ্টদের।", "transliteration": "Siratal-lazina an'amta 'alayhim, ghayril-maghdubi 'alayhim wa lad-dallin" }
+      ]
+    },
+    {
+      "number": 255,
+      "arabicName": "آية الكرسي",
+      "banglaName": "আয়াতুল কুরসি",
+      "transliteration": "Ayat al-Kursi",
+      "verseCount": 1,
+      "revelationType": "Medinan",
+      "banglaMeaning": "আসনের আয়াত",
+      "isPassage": true,
+      "passageNote": "সূরা আল-বাকারার ২৫৫ নম্বর আয়াত",
+      "ayahs": [
+        { "number": 255, "arabic": "اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَن ذَا الَّذِي يَشْفَعُ عِندَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ", "bangla": "আল্লাহ — তিনি ছাড়া কোনো মাবুদ নেই; তিনি চিরঞ্জীব, সর্বসত্তার ধারক। তাঁকে তন্দ্রা বা নিদ্রা স্পর্শ করে না। আসমান ও জমিনে যা কিছু আছে সবই তাঁর। কে আছে যে তাঁর অনুমতি ছাড়া তাঁর কাছে সুপারিশ করবে? তাদের সামনে ও পেছনে যা আছে তিনি তা জানেন; আর তারা তাঁর জ্ঞানের কিছুই আয়ত্ত করতে পারে না, তিনি যা চান তা ছাড়া। তাঁর কুরসি আসমান ও জমিনজুড়ে বিস্তৃত; এ দুটির রক্ষণাবেক্ষণ তাঁকে ক্লান্ত করে না। তিনি সমুন্নত, মহান।", "transliteration": "Allahu la ilaha illa huwal-Hayyul-Qayyum..." }
+      ]
+    },
+    {
+      "number": 112,
+      "arabicName": "الإخلاص",
+      "banglaName": "আল-ইখলাস",
+      "transliteration": "Al-Ikhlas",
+      "verseCount": 4,
+      "revelationType": "Meccan",
+      "banglaMeaning": "একনিষ্ঠতা",
+      "ayahs": [
+        { "number": 1, "arabic": "قُلْ هُوَ اللَّهُ أَحَدٌ", "bangla": "বলুন, তিনি আল্লাহ, এক ও অদ্বিতীয়।", "transliteration": "Qul huwa Allahu ahad" },
+        { "number": 2, "arabic": "اللَّهُ الصَّمَدُ", "bangla": "আল্লাহ কারও মুখাপেক্ষী নন, সবাই তাঁর মুখাপেক্ষী।", "transliteration": "Allahus-samad" },
+        { "number": 3, "arabic": "لَمْ يَلِدْ وَلَمْ يُولَدْ", "bangla": "তিনি কাউকে জন্ম দেননি এবং তিনিও জন্মগ্রহণ করেননি।", "transliteration": "Lam yalid wa lam yulad" },
+        { "number": 4, "arabic": "وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ", "bangla": "এবং তাঁর সমতুল্য কেউ নেই।", "transliteration": "Wa lam yakul-lahu kufuwan ahad" }
+      ]
+    },
+    {
+      "number": 113,
+      "arabicName": "الفلق",
+      "banglaName": "আল-ফালাক",
+      "transliteration": "Al-Falaq",
+      "verseCount": 5,
+      "revelationType": "Meccan",
+      "banglaMeaning": "প্রভাত",
+      "ayahs": [
+        { "number": 1, "arabic": "قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ", "bangla": "বলুন, আমি আশ্রয় চাই প্রভাতের প্রতিপালকের কাছে।", "transliteration": "Qul a'udhu bi Rabbil-falaq" },
+        { "number": 2, "arabic": "مِن شَرِّ مَا خَلَقَ", "bangla": "তিনি যা সৃষ্টি করেছেন তার অনিষ্ট থেকে।", "transliteration": "Min sharri ma khalaq" },
+        { "number": 3, "arabic": "وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ", "bangla": "এবং রাতের অন্ধকারের অনিষ্ট থেকে, যখন তা ছেয়ে যায়।", "transliteration": "Wa min sharri ghasiqin idha waqab" },
+        { "number": 4, "arabic": "وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ", "bangla": "এবং গিরায় ফুঁ দিয়ে জাদুকারিণীদের অনিষ্ট থেকে।", "transliteration": "Wa min sharrin-naffathati fil-'uqad" },
+        { "number": 5, "arabic": "وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ", "bangla": "এবং হিংসুকের অনিষ্ট থেকে, যখন সে হিংসা করে।", "transliteration": "Wa min sharri hasidin idha hasad" }
+      ]
+    },
+    {
+      "number": 114,
+      "arabicName": "الناس",
+      "banglaName": "আন-নাস",
+      "transliteration": "An-Nas",
+      "verseCount": 6,
+      "revelationType": "Meccan",
+      "banglaMeaning": "মানুষ",
+      "ayahs": [
+        { "number": 1, "arabic": "قُلْ أَعُوذُ بِرَبِّ النَّاسِ", "bangla": "বলুন, আমি আশ্রয় চাই মানুষের প্রতিপালকের কাছে।", "transliteration": "Qul a'udhu bi Rabbin-nas" },
+        { "number": 2, "arabic": "مَلِكِ النَّاسِ", "bangla": "মানুষের অধিপতির কাছে।", "transliteration": "Malikin-nas" },
+        { "number": 3, "arabic": "إِلَٰهِ النَّاسِ", "bangla": "মানুষের মাবুদের কাছে।", "transliteration": "Ilahin-nas" },
+        { "number": 4, "arabic": "مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ", "bangla": "আত্মগোপনকারী কুমন্ত্রণাদাতার অনিষ্ট থেকে।", "transliteration": "Min sharril-waswasil-khannas" },
+        { "number": 5, "arabic": "الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ", "bangla": "যে মানুষের অন্তরে কুমন্ত্রণা দেয়।", "transliteration": "Alladhi yuwaswisu fi sudurin-nas" },
+        { "number": 6, "arabic": "مِنَ الْجِنَّةِ وَالنَّاسِ", "bangla": "জিন ও মানুষের মধ্য থেকে।", "transliteration": "Minal-jinnati wan-nas" }
+      ]
+    }
+  ]
+}

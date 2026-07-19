@@ -145,6 +145,9 @@ feature_name/
 - Arabic + Bangla translation + narrator + source
 - Share to social media
 - Push notification delivery via FCM (premium)
+- **Not yet populated.** Loader, schema, and rotation are complete; awaiting a
+  verified, permissively-licensed Bangla source. Entries without full
+  attribution are dropped at load. See `docs/CONTENT.md`.
 
 ### 6. ইসলামিক ক্যালেন্ডার
 - Hijri date display using `hijri` package
@@ -152,17 +155,20 @@ feature_name/
 - Countdown to next Islamic event
 
 ### 7. আল্লাহর ৯৯ নাম
-- Arabic name + transliteration + Bangla meaning + benefits
-- Grid/list view
+- Arabic name + transliteration + Bangla meaning
+- Grid view with detail sheet
 - Memorization progress tracking (future)
-- Data source: `assets/data/names_of_allah.json`
+- Data source: `assets/data/names_of_allah.json` (complete, awaiting review)
 
 ### 8. সূরা সংকলন (Surah Collection)
-- Popular short surahs: Fatiha, Ikhlas, Falaq, Nas, Ayatul Kursi, Ya-Sin, Al-Mulk, Ar-Rahman
-- Arabic text (Amiri font) + Bangla translation + transliteration
+- Currently bundled: Al-Fatihah, Ayat al-Kursi, Al-Ikhlas, Al-Falaq, An-Nas
+- Arabic text (Amiri font) + Bangla meaning + transliteration
 - Verse-by-verse display with numbering
-- Bookmarking last read verse
+- Bookmarking last read verse (future)
 - Data source: `assets/data/surahs.json`
+- **Long surahs (Ya-Sin, Al-Mulk, Ar-Rahman, Al-Baqarah) are not yet included** —
+  they must be ingested from a verified digital edition, never hand-entered.
+  See `docs/CONTENT.md`.
 
 ### 9. রমজান স্পেশাল
 - Sehri & Iftar time countdown (uses prayer time data: Fajr = Sehri, Maghrib = Iftar)
@@ -220,7 +226,7 @@ Full specification: `docs/SRS-Backend-Auth-Subscription.md`
 |---|---|
 | Full amal tracker (9 items + Tahajjud) | ✅ |
 | Hadith push notifications daily | ✅ |
-| All 114 surahs | ✅ |
+| All 114 surahs (planned) | ✅ |
 | 99 names of Allah full | ✅ |
 | Ramadan special mode | ✅ |
 | Audio recitation | ✅ |
@@ -245,10 +251,14 @@ Full specification: `docs/SRS-Backend-Auth-Subscription.md`
 ## Data Files Required (assets/data/)
 
 ```
-hadiths.json        — { id, arabic, bangla, narrator, source, bookRef }
-names_of_allah.json — { number, arabic, transliteration, bangla, meaning }
-surahs.json         — { number, arabicName, banglaName, verseCount, ayahs[] }
+names_of_allah.json — ✅ complete (99 names) — awaiting qualified review
+surahs.json         — ✅ 5 short passages — awaiting qualified review
+hadiths.json        — ⛔ absent — no verified source selected yet
 ```
+
+**All Quranic and hadith content requires verification by a qualified reviewer
+before release, and every bundled translation must be licence-cleared.
+See `docs/CONTENT.md`.**
 
 ---
 

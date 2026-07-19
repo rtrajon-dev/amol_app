@@ -5,6 +5,13 @@ class SurahModel {
   final String transliteration;
   final int verseCount;
   final String revelationType;
+  final String banglaMeaning;
+
+  /// True for a passage extracted from a longer surah (e.g. Ayat al-Kursi),
+  /// so the UI can label it honestly rather than implying a complete surah.
+  final bool isPassage;
+  final String passageNote;
+
   final List<AyahModel> ayahs;
 
   const SurahModel({
@@ -14,8 +21,36 @@ class SurahModel {
     required this.transliteration,
     required this.verseCount,
     required this.revelationType,
+    this.banglaMeaning = '',
+    this.isPassage = false,
+    this.passageNote = '',
     this.ayahs = const [],
   });
+
+  factory SurahModel.fromJson(Map<String, dynamic> json) {
+    final rawAyahs = json['ayahs'];
+    return SurahModel(
+      number: (json['number'] as num?)?.toInt() ?? 0,
+      arabicName: (json['arabicName'] ?? '').toString(),
+      banglaName: (json['banglaName'] ?? '').toString(),
+      transliteration: (json['transliteration'] ?? '').toString(),
+      verseCount: (json['verseCount'] as num?)?.toInt() ?? 0,
+      revelationType: (json['revelationType'] ?? '').toString(),
+      banglaMeaning: (json['banglaMeaning'] ?? '').toString(),
+      isPassage: json['isPassage'] == true,
+      passageNote: (json['passageNote'] ?? '').toString(),
+      ayahs: rawAyahs is List
+          ? rawAyahs
+              .whereType<Map>()
+              .map((a) => AyahModel.fromJson(Map<String, dynamic>.from(a)))
+              .toList()
+          : const [],
+    );
+  }
+
+  /// Bangla label for where the text was revealed.
+  String get revelationBangla =>
+      revelationType.toLowerCase() == 'meccan' ? 'মাক্কি' : 'মাদানি';
 }
 
 class AyahModel {
@@ -30,15 +65,11 @@ class AyahModel {
     required this.bangla,
     required this.transliteration,
   });
-}
 
-const popularSurahs = [
-  SurahModel(number: 1, arabicName: 'الفاتحة', banglaName: 'আল-ফাতিহা', transliteration: 'Al-Fatihah', verseCount: 7, revelationType: 'Meccan'),
-  SurahModel(number: 112, arabicName: 'الإخلاص', banglaName: 'আল-ইখলাস', transliteration: 'Al-Ikhlas', verseCount: 4, revelationType: 'Meccan'),
-  SurahModel(number: 113, arabicName: 'الفلق', banglaName: 'আল-ফালাক', transliteration: 'Al-Falaq', verseCount: 5, revelationType: 'Meccan'),
-  SurahModel(number: 114, arabicName: 'الناس', banglaName: 'আন-নাস', transliteration: 'An-Nas', verseCount: 6, revelationType: 'Meccan'),
-  SurahModel(number: 2, arabicName: 'البقرة', banglaName: 'আল-বাকারা', transliteration: 'Al-Baqarah', verseCount: 286, revelationType: 'Medinan'),
-  SurahModel(number: 36, arabicName: 'يس', banglaName: 'ইয়াসিন', transliteration: 'Ya-Sin', verseCount: 83, revelationType: 'Meccan'),
-  SurahModel(number: 67, arabicName: 'الملك', banglaName: 'আল-মুলক', transliteration: 'Al-Mulk', verseCount: 30, revelationType: 'Meccan'),
-  SurahModel(number: 55, arabicName: 'الرحمن', banglaName: 'আর-রাহমান', transliteration: 'Ar-Rahman', verseCount: 78, revelationType: 'Medinan'),
-];
+  factory AyahModel.fromJson(Map<String, dynamic> json) => AyahModel(
+        number: (json['number'] as num?)?.toInt() ?? 0,
+        arabic: (json['arabic'] ?? '').toString(),
+        bangla: (json['bangla'] ?? '').toString(),
+        transliteration: (json['transliteration'] ?? '').toString(),
+      );
+}
