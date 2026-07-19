@@ -7,6 +7,10 @@ import '../../features/auth/data/auth_repository_impl.dart';
 import '../../features/auth/data/token_store.dart';
 import '../../features/auth/domain/auth_repository.dart';
 import '../../features/auth/presentation/viewmodel/auth_viewmodel.dart';
+import '../../features/subscription/data/bdapps_subscription_repository.dart';
+import '../../features/subscription/data/entitlement_cache.dart';
+import '../../features/subscription/data/subscription_api.dart';
+import '../../features/subscription/domain/subscription_repository.dart';
 import '../network/api_client.dart';
 import '../services/secure_storage_service.dart';
 import '../services/storage_service.dart';
@@ -75,5 +79,26 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl(
     api: ref.watch(authApiProvider),
     tokenStore: ref.watch(tokenStoreProvider),
+  );
+});
+
+// ------------------------------------------------------- subscription (M-3)
+//
+// FR-R-01 — decommissioning BDApps means deleting
+// `lib/features/subscription/data/` and binding the provider below to a
+// different implementation of the same interface. Nothing else changes.
+
+final entitlementCacheProvider = Provider<EntitlementCache>((ref) {
+  return EntitlementCache(ref.watch(secureStorageProvider));
+});
+
+final subscriptionApiProvider = Provider<SubscriptionApi>((ref) {
+  return SubscriptionApi(ref.watch(apiClientProvider));
+});
+
+final subscriptionRepositoryProvider = Provider<SubscriptionRepository>((ref) {
+  return BdappsSubscriptionRepository(
+    api: ref.watch(subscriptionApiProvider),
+    cache: ref.watch(entitlementCacheProvider),
   );
 });

@@ -5,6 +5,11 @@ abstract class AppRoutes {
 
   // Auth (M-2). These sit between onboarding and Home in the startup
   // sequence; the subscription gate (M-3/M-4) will be inserted before them.
+  /// M-3/M-4 — the optional subscription gate. Sits before login in the
+  /// startup sequence, and is also reachable from Settings and locked
+  /// features (FR-S-10).
+  static const subscription = '/subscription';
+
   static const login = '/login';
   static const register = '/register';
   static const forgotPassword = '/forgot-password';

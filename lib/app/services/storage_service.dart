@@ -35,6 +35,11 @@ abstract class StorageKeys {
   /// Convenience only: prefills the login field. Never a credential.
   static const lastAuthEmail = 'last_auth_email';
 
+  /// FR-S-09 — how many times the subscription gate has been shown
+  /// automatically. At 3 it stops for good.
+  static const subGatePromptCount = 'sub_gate_prompt_count';
+  static const subGateDismissedAt = 'sub_gate_dismissed_at';
+
   static const selectedCity = 'selected_city';
   static const azanEnabled = 'azan_enabled';
   static const tasbeehCount = 'tasbeeh_count';

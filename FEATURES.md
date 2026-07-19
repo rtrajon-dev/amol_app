@@ -202,7 +202,10 @@ three things the device cannot determine alone — identity, entitlement, and co
 - **Firebase (free tier)** — FCM push, Crashlytics, Analytics, Remote Config
 - **BDApps** — carrier billing, consumed through the existing Amol365 endpoints
 
-Startup sequence: Splash → Onboarding → Subscription gate (optional, dismissible) → Login → Home
+Startup sequence: Splash → Onboarding → Subscription gate (optional, ✕ dismisses) → Login → Home
+
+The gate is shown automatically on at most the first 3 launches. After that it is
+reachable from Settings → প্রিমিয়াম and from any locked premium feature.
 
 Full specification: `docs/SRS-Backend-Auth-Subscription.md`
 

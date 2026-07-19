@@ -17,6 +17,8 @@ import '../../features/prayer_time/presentation/view/prayer_time_screen.dart';
 import '../../features/qibla/presentation/view/qibla_screen.dart';
 import '../../features/ramadan/presentation/view/ramadan_screen.dart';
 import '../../features/settings/presentation/view/settings_screen.dart';
+import '../../features/subscription/presentation/view/subscription_gate_screen.dart';
+import '../../features/subscription/presentation/viewmodel/subscription_viewmodel.dart';
 import '../../features/surah/presentation/view/surah_detail_screen.dart';
 import '../../features/surah/presentation/view/surah_screen.dart';
 import '../../features/tasbeeh/presentation/view/tasbeeh_screen.dart';
@@ -28,6 +30,9 @@ import 'app_routes.dart';
 class _RouterRefresh extends ChangeNotifier {
   _RouterRefresh(Ref ref) {
     ref.listen(authProvider, (_, _) => notifyListeners());
+    // Entitlement restores asynchronously from secure storage; without this
+    // the gate would still be showing after the cache says "premium".
+    ref.listen(entitlementProvider, (_, _) => notifyListeners());
   }
 }
 
@@ -67,16 +72,41 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return path == AppRoutes.onboarding ? null : AppRoutes.onboarding;
       }
       if (path == AppRoutes.onboarding) {
-        return auth.isAuthenticated ? AppRoutes.home : AppRoutes.login;
+        return AppRoutes.subscription;
       }
 
-      // 3. Authentication (FR-G-03). A persisted session satisfies this, and
+      // 3. Subscription gate (FR-G-01, FR-G-02) — OPTIONAL. It precedes login,
+      //    and the ✕ dismisses it straight through to the next step. It is
+      //    shown automatically at most three times (FR-S-09); after that it is
+      //    reachable only from Settings or a locked feature (FR-S-10).
+      final entitlement = ref.read(entitlementProvider);
+      final gateIsDue = SubscriptionGatePolicy.shouldShow(entitlement);
+
+      if (path == AppRoutes.subscription) {
+        // FR-S-10 — a MANUAL entry (Settings row, locked feature) must always
+        // open, even after FR-S-09 has silenced the automatic prompt. Without
+        // this the only two remaining conversion paths would be dead.
+        final isManual = state.uri.queryParameters['manual'] == '1';
+        if (isManual) return null;
+
+        // Automatic entry: never trap the user here if it is no longer due.
+        if (!gateIsDue) {
+          return auth.isAuthenticated ? AppRoutes.home : AppRoutes.login;
+        }
+        return null;
+      }
+
+      if (gateIsDue && !auth.isAuthenticated && !authRoutes.contains(path)) {
+        return AppRoutes.subscription;
+      }
+
+      // 4. Authentication (FR-G-03). A persisted session satisfies this, and
       //    the check is local, so an offline user is never blocked (FR-A-06).
       if (!auth.isAuthenticated) {
         return authRoutes.contains(path) ? null : AppRoutes.login;
       }
 
-      // 4. Authenticated users never sit on splash or an auth screen.
+      // 5. Authenticated users never sit on splash or an auth screen.
       if (path == AppRoutes.splash || authRoutes.contains(path)) {
         return AppRoutes.home;
       }
@@ -92,6 +122,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.onboarding,
         builder: (_, _) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.subscription,
+        builder: (context, state) {
+          final isManual = state.uri.queryParameters['manual'] == '1';
+          return SubscriptionGateScreen(
+            isAutomaticPrompt: !isManual,
+            onDone: ({required bool subscribed}) {
+              // Opened manually from Settings or a locked feature: just go
+              // back where they came from.
+              if (isManual && context.canPop()) {
+                context.pop();
+                return;
+              }
+              // Startup gate: both dismiss and success converge, and the
+              // redirect decides the destination — one source of truth for
+              // the sequence (FR-G-05).
+              final auth = ref.read(authProvider);
+              context.go(auth.isAuthenticated ? AppRoutes.home : AppRoutes.login);
+            },
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.login,

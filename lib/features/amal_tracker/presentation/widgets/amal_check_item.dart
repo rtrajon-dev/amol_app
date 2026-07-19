@@ -1,31 +1,60 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../subscription/presentation/viewmodel/subscription_viewmodel.dart';
+import '../../../subscription/presentation/widgets/premium_lock.dart';
 import '../../domain/models/amal_item_model.dart';
 
-class AmalCheckItem extends StatelessWidget {
+class AmalCheckItem extends ConsumerWidget {
   const AmalCheckItem({super.key, required this.item, required this.onToggle});
+
   final AmalItemModel item;
   final VoidCallback onToggle;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // FR-S-16 — the item stays VISIBLE when locked. Tapping it opens the
+    // subscription flow rather than doing nothing, which is one of the two
+    // conversion paths that survive FR-S-09 silencing the gate.
+    final isLocked = item.isPremium && !ref.watch(entitlementProvider).isPremium;
+
+    void handleTap() {
+      if (isLocked) {
+        context.push('${AppRoutes.subscription}?manual=1');
+        return;
+      }
+      onToggle();
+    }
+
     return Card(
       margin: EdgeInsets.only(bottom: 8.h),
       child: ListTile(
+        onTap: handleTap,
         leading: GestureDetector(
-          onTap: onToggle,
+          onTap: handleTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             width: 28.w,
             height: 28.w,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: item.isCompleted ? AppColors.success : Colors.transparent,
-              border: Border.all(color: item.isCompleted ? AppColors.success : AppColors.textSecondary, width: 2),
+              color: item.isCompleted && !isLocked ? AppColors.success : Colors.transparent,
+              border: Border.all(
+                color: isLocked
+                    ? AppColors.textSecondary.withValues(alpha: 0.4)
+                    : (item.isCompleted ? AppColors.success : AppColors.textSecondary),
+                width: 2,
+              ),
             ),
-            child: item.isCompleted ? const Icon(Icons.check, color: Colors.white, size: 16) : null,
+            child: isLocked
+                ? Icon(Icons.lock, size: 14.sp, color: AppColors.textSecondary)
+                : (item.isCompleted
+                    ? const Icon(Icons.check, color: Colors.white, size: 16)
+                    : null),
           ),
         ),
         title: Text(
@@ -33,16 +62,13 @@ class AmalCheckItem extends StatelessWidget {
           style: TextStyle(
             fontSize: 15.sp,
             fontWeight: FontWeight.w500,
-            decoration: item.isCompleted ? TextDecoration.lineThrough : null,
-            color: item.isCompleted ? AppColors.textSecondary : null,
+            decoration:
+                item.isCompleted && !isLocked ? TextDecoration.lineThrough : null,
+            color: item.isCompleted && !isLocked ? AppColors.textSecondary : null,
           ),
         ),
         subtitle: Text(item.subtitle, style: TextStyle(fontSize: 12.sp)),
-        trailing: item.isPremium ? Container(
-          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-          decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
-          child: Text('প্রিমিয়াম', style: TextStyle(fontSize: 10.sp, color: AppColors.accent, fontWeight: FontWeight.bold)),
-        ) : null,
+        trailing: isLocked ? const PremiumBadge() : null,
       ),
     );
   }

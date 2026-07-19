@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../app/di/providers.dart';
+import '../../../../app/network/api_exception.dart';
+import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../auth/presentation/viewmodel/auth_viewmodel.dart';
+import '../../../subscription/presentation/viewmodel/subscription_viewmodel.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -36,9 +41,50 @@ class SettingsScreen extends ConsumerWidget {
     await ref.read(authProvider.notifier).logout();
   }
 
+  /// FR-S-20 — cancelling is GLOBAL. Amol365 mobile and web are one BDApps
+  /// application, so ending this subscription ends web access too. The dialog
+  /// says so plainly; the consequence must never be a surprise.
+  Future<void> _confirmCancel(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('সাবস্ক্রিপশন বাতিল'),
+        content: const Text(
+          'আপনি কি সাবস্ক্রিপশন বাতিল করতে চান?\n\n'
+          'বাতিল করলে প্রিমিয়াম ফিচারগুলো সাথে সাথে বন্ধ হয়ে যাবে। '
+          'এই নম্বর দিয়ে ওয়েবসাইটেও আর প্রিমিয়াম ব্যবহার করা যাবে না।',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('থাক'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text('বাতিল করুন', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final result = await ref.read(subscriptionRepositoryProvider).cancel();
+      ref.read(entitlementProvider.notifier).set(result);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('সাবস্ক্রিপশন বাতিল করা হয়েছে।')),
+      );
+    } on ApiException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
+    final entitlement = ref.watch(entitlementProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('সেটিংস')),
@@ -72,8 +118,33 @@ class SettingsScreen extends ConsumerWidget {
             _SettingsItem(icon: Icons.text_fields, title: 'আরবি ফন্ট সাইজ', subtitle: 'মাঝারি', onTap: () {}),
           ]),
           SizedBox(height: 16.h),
+          // FR-S-10 — one of only two conversion paths once the automatic
+          // gate is silenced. Always visible to free users.
           _SettingsSection(title: 'প্রিমিয়াম', items: [
-            _SettingsItem(icon: Icons.star_outline, title: 'প্রিমিয়াম সাবস্ক্রিপশন', subtitle: 'সপ্তাহে ৫ টাকা', onTap: () {}, highlight: true),
+            if (entitlement.isPremium) ...[
+              _SettingsItem(
+                icon: Icons.verified,
+                title: 'প্রিমিয়াম সক্রিয়',
+                subtitle: entitlement.maskedMsisdn == null
+                    ? 'সাপ্তাহিক ৫ টাকা'
+                    : '${entitlement.maskedMsisdn} · সাপ্তাহিক ৫ টাকা',
+                onTap: () {},
+                highlight: true,
+              ),
+              _SettingsItem(
+                icon: Icons.cancel_outlined,
+                title: 'সাবস্ক্রিপশন বাতিল করুন',
+                subtitle: 'আনসাবস্ক্রাইব',
+                onTap: () => _confirmCancel(context, ref),
+              ),
+            ] else
+              _SettingsItem(
+                icon: Icons.star_outline,
+                title: 'প্রিমিয়াম সাবস্ক্রিপশন',
+                subtitle: 'সপ্তাহে ৫ টাকা',
+                highlight: true,
+                onTap: () => context.push('${AppRoutes.subscription}?manual=1'),
+              ),
           ]),
         ],
       ),
