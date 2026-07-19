@@ -28,6 +28,13 @@ class StorageService {
 
 abstract class StorageKeys {
   static const onboardingDone = 'onboarding_done';
+
+  /// FR-BE-08 — stable per-install id sent as `X-Device-Id`.
+  static const deviceId = 'device_id';
+
+  /// Convenience only: prefills the login field. Never a credential.
+  static const lastAuthEmail = 'last_auth_email';
+
   static const selectedCity = 'selected_city';
   static const azanEnabled = 'azan_enabled';
   static const tasbeehCount = 'tasbeeh_count';

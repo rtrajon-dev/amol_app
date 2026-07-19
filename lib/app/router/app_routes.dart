@@ -1,6 +1,14 @@
 abstract class AppRoutes {
   static const home = '/';
+  static const splash = '/splash';
   static const onboarding = '/onboarding';
+
+  // Auth (M-2). These sit between onboarding and Home in the startup
+  // sequence; the subscription gate (M-3/M-4) will be inserted before them.
+  static const login = '/login';
+  static const register = '/register';
+  static const forgotPassword = '/forgot-password';
+
   static const prayerTime = '/prayer-time';
   static const tasbeeh = '/tasbeeh';
   static const amalTracker = '/amal-tracker';

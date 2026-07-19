@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/app_routes.dart';
+import '../../../../app/services/storage_service.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../global_widgets/primary_button.dart';
 
@@ -34,6 +35,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       subtitle: 'বাংলায় দোয়া, হাদিস এবং দৈনন্দিন আমলের সম্পূর্ণ সংকলন',
     ),
   ];
+
+  /// Record completion, then let the router decide where to go next
+  /// (FR-G-04/FR-G-05). Without persisting the flag the redirect would send
+  /// the user straight back here on every launch.
+  Future<void> _finish() async {
+    await StorageService.instance.setBool(StorageKeys.onboardingDone, true);
+    if (!mounted) return;
+    context.go(AppRoutes.login);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,14 +81,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   if (_currentPage < _pages.length - 1) {
                     _controller.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
                   } else {
-                    context.go(AppRoutes.home);
+                    _finish();
                   }
                 },
               ),
             ),
             SizedBox(height: 16.h),
             TextButton(
-              onPressed: () => context.go(AppRoutes.home),
+              onPressed: _finish,
               child: Text('এড়িয়ে যান', style: TextStyle(color: AppColors.textSecondary, fontSize: 14.sp)),
             ),
             SizedBox(height: 16.h),

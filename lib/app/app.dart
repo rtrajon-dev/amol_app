@@ -6,8 +6,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
-class IslamicAmolApp extends ConsumerWidget {
-  const IslamicAmolApp({super.key});
+class Amol365App extends ConsumerWidget {
+  const Amol365App({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

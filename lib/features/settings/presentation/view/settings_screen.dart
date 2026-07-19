@@ -1,18 +1,65 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../auth/presentation/viewmodel/auth_viewmodel.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
+  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('লগআউট'),
+        content: const Text(
+          'আপনি কি লগআউট করতে চান?\n\n'
+          'আপনার আমল, তাসবিহ ও স্ট্রিক এই ডিভাইসেই থাকবে।',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('বাতিল'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text('লগআউট', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    // FR-A-08 — device-local progress is preserved, not wiped. The router
+    // redirect handles navigation once the auth state flips.
+    await ref.read(authProvider.notifier).logout();
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('সেটিংস')),
       body: ListView(
         padding: EdgeInsets.all(16.w),
         children: [
+          _SettingsSection(title: 'অ্যাকাউন্ট', items: [
+            _SettingsItem(
+              icon: Icons.person_outline,
+              title: auth.user?.label ?? 'অ্যাকাউন্ট',
+              subtitle: auth.user?.email ?? 'লগইন করা আছে',
+              onTap: () {},
+            ),
+            _SettingsItem(
+              icon: Icons.logout,
+              title: 'লগআউট',
+              subtitle: 'এই ডিভাইস থেকে বের হন',
+              onTap: () => _confirmLogout(context, ref),
+            ),
+          ]),
+          SizedBox(height: 16.h),
           _SettingsSection(title: 'নামাজ', items: [
             _SettingsItem(icon: Icons.location_on_outlined, title: 'শহর নির্বাচন', subtitle: 'ঢাকা', onTap: () {}),
             _SettingsItem(icon: Icons.calculate_outlined, title: 'হিসাব পদ্ধতি', subtitle: 'কারাচি (হানাফি)', onTap: () {}),
