@@ -40,6 +40,10 @@ abstract class StorageKeys {
   static const subGatePromptCount = 'sub_gate_prompt_count';
   static const subGateDismissedAt = 'sub_gate_dismissed_at';
 
+  /// FR-P-02 — daily hadith push opt-in. Off by default: an unsolicited daily
+  /// notification is the fastest way to get uninstalled.
+  static const pushHadithEnabled = 'push_hadith_enabled';
+
   static const selectedCity = 'selected_city';
   static const azanEnabled = 'azan_enabled';
   static const tasbeehCount = 'tasbeeh_count';

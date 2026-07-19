@@ -5,8 +5,12 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import 'app/app.dart';
 import 'app/di/providers.dart';
+import 'app/services/firebase_service.dart';
 import 'app/services/notification_service.dart';
+import 'app/services/push_service.dart';
+import 'app/services/remote_config_service.dart';
 import 'app/services/storage_service.dart';
+import 'app/services/telemetry_service.dart';
 
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +21,16 @@ Future<void> bootstrap() async {
   // synchronously on the very first redirect.
   await StorageService.instance.init();
 
+  // Local notifications — azan. Independent of Firebase and of the network
+  // (FR-P-04); initialised first so a Firebase problem can never delay it.
   await NotificationService.instance.initialize();
+
+  // M-6. Every one of these degrades to a no-op without config files
+  // (docs/FIREBASE.md), so the app starts normally either way.
+  await FirebaseService.instance.initialize();
+  await TelemetryService.instance.initialize();
+  await RemoteConfigService.instance.initialize();
+  await PushService.instance.initialize();
 
   // FR-BE-08 — X-App-Version. Read once; it cannot change at runtime.
   var appVersion = '0.0.0';

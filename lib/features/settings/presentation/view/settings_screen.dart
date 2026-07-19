@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/di/providers.dart';
 import '../../../../app/network/api_exception.dart';
 import '../../../../app/router/app_routes.dart';
+import '../../../../app/services/push_service.dart';
+import '../../../../app/services/storage_service.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../auth/presentation/viewmodel/auth_viewmodel.dart';
 import '../../../subscription/presentation/viewmodel/subscription_viewmodel.dart';
@@ -81,6 +83,49 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
+  /// FR-P-02 / FR-P-03 — daily hadith push.
+  ///
+  /// Notification permission is requested HERE, at the moment the user asks
+  /// for the feature — never at startup. Asking on first launch, before any
+  /// value has been demonstrated, is how apps get permanently denied and then
+  /// cannot ask again.
+  Future<void> _toggleHadithPush(
+    BuildContext context, WidgetRef ref, bool isPremium) async {
+    if (!isPremium) {
+      context.push('${AppRoutes.subscription}?manual=1');
+      return;
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+    final storage = StorageService.instance;
+    final currentlyOn = storage.getBool(StorageKeys.pushHadithEnabled);
+
+    if (currentlyOn) {
+      await storage.setBool(StorageKeys.pushHadithEnabled, false);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('প্রতিদিনের হাদিস বন্ধ করা হয়েছে।')),
+      );
+      return;
+    }
+
+    final granted = await PushService.instance.requestPermission();
+    if (!granted) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'নোটিফিকেশনের অনুমতি প্রয়োজন। ফোনের সেটিংস থেকে অনুমতি দিন।',
+          ),
+        ),
+      );
+      return;
+    }
+
+    await storage.setBool(StorageKeys.pushHadithEnabled, true);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('প্রতিদিনের হাদিস চালু করা হয়েছে।')),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
@@ -110,6 +155,19 @@ class SettingsScreen extends ConsumerWidget {
             _SettingsItem(icon: Icons.location_on_outlined, title: 'শহর নির্বাচন', subtitle: 'ঢাকা', onTap: () {}),
             _SettingsItem(icon: Icons.calculate_outlined, title: 'হিসাব পদ্ধতি', subtitle: 'কারাচি (হানাফি)', onTap: () {}),
             _SettingsItem(icon: Icons.notifications_outlined, title: 'আযান নোটিফিকেশন', subtitle: 'চালু', onTap: () {}),
+          ]),
+          SizedBox(height: 16.h),
+          _SettingsSection(title: 'নোটিফিকেশন', items: [
+            _SettingsItem(
+              icon: Icons.auto_stories_outlined,
+              title: 'প্রতিদিনের হাদিস',
+              subtitle: entitlement.isPremium
+                  ? (StorageService.instance.getBool(StorageKeys.pushHadithEnabled)
+                      ? 'চালু'
+                      : 'বন্ধ')
+                  : 'প্রিমিয়াম ফিচার',
+              onTap: () => _toggleHadithPush(context, ref, entitlement.isPremium),
+            ),
           ]),
           SizedBox(height: 16.h),
           _SettingsSection(title: 'অ্যাপ', items: [

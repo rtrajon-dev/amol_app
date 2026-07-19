@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/di/providers.dart';
 import '../../../../app/network/api_exception.dart';
+import '../../../../app/services/remote_config_service.dart';
 import '../../../../app/services/storage_service.dart';
+import '../../../../app/services/telemetry_service.dart';
 import '../../domain/entitlement.dart';
 import '../../domain/subscription_repository.dart';
 
@@ -55,20 +57,41 @@ class EntitlementNotifier extends Notifier<Entitlement> {
 abstract class SubscriptionGatePolicy {
   static const maxAutomaticPrompts = 3;
 
+  /// Remote Config may lower or raise the limit without an app release
+  /// (FR-P-07); the local constant is the default if Firebase is unavailable.
+  static int get _limit {
+    final remote = RemoteConfigService.instance.getInt(Flags.subscriptionGateMaxPrompts);
+    return remote > 0 ? remote : maxAutomaticPrompts;
+  }
+
   static bool shouldShow(Entitlement entitlement) {
     if (entitlement.isPremium) return false;
+
+    // FR-P-07 kill switch — lets the gate be turned off entirely (a BDApps
+    // outage, suspended billing) without shipping a new APK.
+    if (!RemoteConfigService.instance.getBool(Flags.subscriptionGateEnabled)) {
+      return false;
+    }
+
     final shown = StorageService.instance.getInt(StorageKeys.subGatePromptCount);
-    return shown < maxAutomaticPrompts;
+    return shown < _limit;
   }
 
   static Future<void> recordShown() async {
     final shown = StorageService.instance.getInt(StorageKeys.subGatePromptCount);
     await StorageService.instance.setInt(StorageKeys.subGatePromptCount, shown + 1);
+    // FR-P-06 — `promptNumber` is what makes the funnel readable: it shows
+    // whether prompt 2 and 3 convert at all, or just annoy.
+    await TelemetryService.instance
+        .logEvent(AnalyticsEvents.gateShown, {'promptNumber': shown + 1});
   }
 
   static Future<void> recordDismissed() async {
     await StorageService.instance
         .setInt(StorageKeys.subGateDismissedAt, DateTime.now().millisecondsSinceEpoch);
+    final shown = StorageService.instance.getInt(StorageKeys.subGatePromptCount);
+    await TelemetryService.instance
+        .logEvent(AnalyticsEvents.gateDismissed, {'promptNumber': shown});
   }
 
   /// Stop automatic prompting for good — used after a successful subscribe.
@@ -154,6 +177,7 @@ class SubscriptionNotifier extends Notifier<SubscriptionState> {
     }
 
     state = state.copyWith(isBusy: true, clearFailure: true, msisdn: msisdn);
+    await TelemetryService.instance.logEvent(AnalyticsEvents.phoneSubmitted);
 
     try {
       final entitlement = await _repository.checkStatus(msisdn);
@@ -161,12 +185,16 @@ class SubscriptionNotifier extends Notifier<SubscriptionState> {
       if (entitlement.isPremium) {
         ref.read(entitlementProvider.notifier).set(entitlement);
         await SubscriptionGatePolicy.silence();
+        // FR-S-19 — an existing web subscriber landing here with no OTP and
+        // no second charge. Worth measuring separately from a new subscribe.
+        await TelemetryService.instance.logEvent(AnalyticsEvents.alreadySubscribed);
         state = state.copyWith(step: GateStep.success, isBusy: false);
         return;
       }
 
       // Not subscribed — begin the OTP flow (FR-S-04).
       final challenge = await _repository.requestOtp(msisdn);
+      await TelemetryService.instance.logEvent(AnalyticsEvents.otpRequested);
       state = state.copyWith(
         step: GateStep.otp,
         isBusy: false,
@@ -197,9 +225,14 @@ class SubscriptionNotifier extends Notifier<SubscriptionState> {
       );
       ref.read(entitlementProvider.notifier).set(entitlement);
       await SubscriptionGatePolicy.silence();
+      await TelemetryService.instance.logEvent(AnalyticsEvents.subscribed);
+      await TelemetryService.instance.setPremium(true);
       state = state.copyWith(step: GateStep.success, isBusy: false);
       return true;
     } on ApiException catch (e) {
+      // The error CODE is recorded, never the OTP the user typed (FR-P-05).
+      await TelemetryService.instance
+          .logEvent(AnalyticsEvents.otpFailed, {'code': e.code});
       // FR-S-07 — an expired transaction sends the user back to resend rather
       // than dead-ending on the OTP screen.
       if (e.code == 'OTP_EXPIRED') {

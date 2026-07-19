@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'di/push_registrar.dart';
 import 'di/session_coordinator.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
@@ -17,6 +18,9 @@ class Amol365App extends ConsumerWidget {
     // Keeps the auth ↔ entitlement coordination alive for the app's lifetime
     // (EC-17). Watching it here is what instantiates the listener.
     ref.watch(sessionCoordinatorProvider);
+
+    // FCM token registration and telemetry user/tier properties (M-6).
+    ref.watch(pushRegistrarProvider);
 
     return ScreenUtilInit(
       designSize: const Size(390, 844),
