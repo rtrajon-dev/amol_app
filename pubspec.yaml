@@ -40,6 +40,8 @@ dependencies:
 
   # Notifications (azan alarms, daily reminders)
   flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.0
+  flutter_timezone: ^4.1.0
 
   # UI
   google_fonts: ^6.2.1

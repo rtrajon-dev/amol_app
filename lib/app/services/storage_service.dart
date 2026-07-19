@@ -44,6 +44,36 @@ abstract class StorageKeys {
   /// notification is the fastest way to get uninstalled.
   static const pushHadithEnabled = 'push_hadith_enabled';
 
+  // ---- Location (SRS docs/SRS.md §4.9) ----
+
+  /// FR-N-01 — 'auto' | 'manual'.
+  static const locationSource = 'location_source';
+  static const locationLat = 'location_lat';
+  static const locationLng = 'location_lng';
+  static const locationName = 'location_name';
+  static const locationTimestamp = 'location_timestamp';
+
+  /// FR-N-12 — 'hanafi' | 'shafi'. Affects Asr only.
+  static const madhab = 'madhab';
+
+  /// FR-N-13 — JSON map of per-prayer offsets in minutes, −30..+30.
+  static const prayerOffsets = 'prayer_offsets';
+
+  // ---- Azan (SRS docs/SRS.md §4.9) ----
+
+  /// FR-N-23 — comma-separated list of prayers with azan enabled.
+  /// Empty = never configured (defaults apply); a single space = explicitly none.
+  static const azanPerPrayer = 'azan_per_prayer';
+
+  /// FR-N-24 — minutes before each prayer to send a reminder. 0 = off.
+  static const preReminderMinutes = 'pre_reminder_minutes';
+
+  /// FR-N-28 — 'default' | 'silent' (azan audio reserved for later).
+  static const azanSoundMode = 'azan_sound_mode';
+
+  /// Whether the user has been shown the battery-optimisation guidance.
+  static const batteryGuidanceShown = 'battery_guidance_shown';
+
   static const selectedCity = 'selected_city';
   static const azanEnabled = 'azan_enabled';
   static const tasbeehCount = 'tasbeeh_count';

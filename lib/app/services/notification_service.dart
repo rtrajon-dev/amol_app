@@ -1,30 +1,280 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:timezone/data/latest_all.dart' as tz_data;
+import 'package:timezone/timezone.dart' as tz;
 
+import '../../features/prayer_time/domain/models/prayer_time_model.dart';
+import 'storage_service.dart';
+
+/// Local notifications — azan and reminders.
+///
+/// FR-P-04 / NFR-05 — these are LOCAL and never routed through FCM. A prayer
+/// alert that depends on connectivity is useless to the rural, intermittently
+/// connected user this app is built for. Firebase being absent, broken, or
+/// unreachable has no effect on anything in this file.
 class NotificationService {
   NotificationService._();
   static final instance = NotificationService._();
 
   final _plugin = FlutterLocalNotificationsPlugin();
+  bool _timezoneReady = false;
+
+  static const _azanChannelId = 'azan';
+  static const _reminderChannelId = 'daily_reminder';
+
+  /// FR-N-26 — a rolling week is scheduled so alerts keep firing even if the
+  /// user never opens the app. Seven days × five prayers = 35 pending
+  /// notifications, comfortably under iOS's 64 limit.
+  static const scheduleHorizonDays = 7;
 
   Future<void> initialize() async {
+    await _initTimezone();
+
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const ios = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      // FR-N-25 / FR-P-03 — permission is requested when the user first
+      // ENABLES a notification, not at startup. Asking on launch, before any
+      // value has been shown, is how apps get permanently denied.
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
+
     await _plugin.initialize(
       const InitializationSettings(android: android, iOS: ios),
+      onDidReceiveNotificationResponse: _onTap,
+    );
+
+    await _createChannels();
+  }
+
+  /// `zonedSchedule` requires the timezone database. Without this, azan cannot
+  /// be scheduled at all — and it was never initialised before (part of G-03).
+  Future<void> _initTimezone() async {
+    if (_timezoneReady) return;
+    try {
+      tz_data.initializeTimeZones();
+      final name = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(name));
+      _timezoneReady = true;
+    } catch (e) {
+      // Fall back to Dhaka rather than failing outright: a wrong-but-close
+      // timezone still fires azan, whereas no timezone fires nothing.
+      try {
+        tz_data.initializeTimeZones();
+        tz.setLocalLocation(tz.getLocation('Asia/Dhaka'));
+        _timezoneReady = true;
+      } catch (_) {
+        debugPrint('Notifications: timezone unavailable ($e)');
+      }
+    }
+  }
+
+  Future<void> _createChannels() async {
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (android == null) return;
+
+    await android.createNotificationChannel(
+      const AndroidNotificationChannel(
+        _azanChannelId,
+        'আযান',
+        description: 'নামাজের সময় আযানের নোটিফিকেশন',
+        importance: Importance.max,
+        playSound: true,
+        enableVibration: true,
+      ),
+    );
+
+    await android.createNotificationChannel(
+      const AndroidNotificationChannel(
+        _reminderChannelId,
+        'দৈনিক রিমাইন্ডার',
+        description: 'দৈনিক ইসলামিক রিমাইন্ডার',
+        importance: Importance.high,
+      ),
     );
   }
 
-  Future<void> scheduleAzan({
-    required int id,
-    required String prayerName,
-    required DateTime scheduledTime,
-  }) async {
-    // TODO: implement azan scheduling with TZDateTime
+  // ------------------------------------------------------------ permissions
+
+  /// FR-N-25 — Android 13+ POST_NOTIFICATIONS, requested on enable.
+  Future<bool> requestNotificationPermission() async {
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (android != null) {
+      return await android.requestNotificationsPermission() ?? false;
+    }
+
+    final ios = _plugin.resolvePlatformSpecificImplementation<
+        IOSFlutterLocalNotificationsPlugin>();
+    if (ios != null) {
+      return await ios.requestPermissions(alert: true, badge: true, sound: true) ??
+          false;
+    }
+    return false;
   }
+
+  /// Android 12+ requires explicit permission for exact alarms.
+  ///
+  /// Inexact alarms can drift well past 15 minutes, which is useless for
+  /// prayer — a Maghrib alert arriving after the window has closed is worse
+  /// than none. Play policy permits exact alarms for alarm-clock-class apps,
+  /// which a prayer-time app is.
+  Future<bool> requestExactAlarmPermission() async {
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (android == null) return true; // iOS has no equivalent restriction
+    try {
+      return await android.requestExactAlarmsPermission() ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> hasNotificationPermission() async {
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (android != null) {
+      return await android.areNotificationsEnabled() ?? false;
+    }
+    return true;
+  }
+
+  // -------------------------------------------------------------- scheduling
+
+  /// FR-N-26 — cancel everything and reschedule a rolling week.
+  ///
+  /// Called whenever times change: location, calculation method, madhab,
+  /// offsets, date rollover, or timezone (FR-N-15). Rescheduling wholesale is
+  /// deliberate — diffing pending notifications against new times is where
+  /// stale alarms survive and fire at the wrong moment.
+  Future<void> rescheduleAzan({
+    required List<PrayerTimesModel> upcomingDays,
+    required Map<PrayerSlot, bool> enabledPrayers,
+    int preReminderMinutes = 0,
+  }) async {
+    await cancelAzan();
+    await _initTimezone();
+
+    if (!_timezoneReady) return;
+
+    final now = DateTime.now();
+
+    for (var dayIndex = 0; dayIndex < upcomingDays.length; dayIndex++) {
+      final day = upcomingDays[dayIndex];
+
+      for (final prayer in day.prayers) {
+        if (!prayer.slot.isNotifiable) continue;
+        if (enabledPrayers[prayer.slot] != true) continue;
+        if (!prayer.time.isAfter(now)) continue; // never schedule the past
+
+        await _scheduleOne(
+          id: prayer.slot.notificationBaseId + dayIndex,
+          title: '${prayer.bangla}ের সময় হয়েছে',
+          body: '${prayer.bangla} — ${_formatBangla(prayer.time)}',
+          when: prayer.time,
+          payload: '/prayer-time',
+        );
+
+        // FR-N-24 — optional pre-prayer reminder.
+        if (preReminderMinutes > 0) {
+          final remindAt =
+              prayer.time.subtract(Duration(minutes: preReminderMinutes));
+          if (remindAt.isAfter(now)) {
+            await _scheduleOne(
+              // +50 keeps reminder ids clear of the azan id block for the
+              // same prayer across the 7-day horizon.
+              id: prayer.slot.notificationBaseId + 50 + dayIndex,
+              title: '${prayer.bangla}ের সময় হতে যাচ্ছে',
+              body: '$preReminderMinutes মিনিট পর ${prayer.bangla}',
+              when: remindAt,
+              payload: '/prayer-time',
+            );
+          }
+        }
+      }
+    }
+  }
+
+  Future<void> _scheduleOne({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime when,
+    required String payload,
+  }) async {
+    final details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        _azanChannelId,
+        'আযান',
+        channelDescription: 'নামাজের সময় আযানের নোটিফিকেশন',
+        importance: Importance.max,
+        priority: Priority.high,
+        category: AndroidNotificationCategory.alarm,
+        // FR-N-28 — default system tone for now. A bundled azan clip would be
+        // set here via `sound: RawResourceAndroidNotificationSound(...)`;
+        // nothing else in this method changes when that lands.
+        playSound: true,
+      ),
+      iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentSound: true,
+        interruptionLevel: InterruptionLevel.timeSensitive,
+      ),
+    );
+
+    try {
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        tz.TZDateTime.from(when, tz.local),
+        details,
+        // Exact wall-clock time, surviving Doze. This is the setting that
+        // decides between an azan at 5:42 and one at 6:10.
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload,
+      );
+    } on PlatformException catch (e) {
+      // Exact-alarm permission not granted: fall back to inexact rather than
+      // scheduling nothing. A slightly late azan beats silence.
+      debugPrint('Azan: exact schedule failed (${e.code}), using inexact');
+      try {
+        await _plugin.zonedSchedule(
+          id,
+          title,
+          body,
+          tz.TZDateTime.from(when, tz.local),
+          details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          payload: payload,
+        );
+      } catch (_) {}
+    } catch (e) {
+      debugPrint('Azan: schedule failed ($e)');
+    }
+  }
+
+  Future<void> cancelAzan() async {
+    for (final slot in PrayerSlot.values) {
+      for (var day = 0; day < scheduleHorizonDays; day++) {
+        await _plugin.cancel(slot.notificationBaseId + day);
+        await _plugin.cancel(slot.notificationBaseId + 50 + day);
+      }
+    }
+  }
+
+  /// Diagnostic used by the azan settings screen so the user can confirm
+  /// alarms really are queued — the single most common support question.
+  Future<List<PendingNotificationRequest>> pending() =>
+      _plugin.pendingNotificationRequests();
 
   Future<void> showDailyReminder({
     required int id,
@@ -33,9 +283,9 @@ class NotificationService {
   }) async {
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
-        'daily_reminder',
-        'Daily Reminder',
-        channelDescription: 'Daily Islamic reminders',
+        _reminderChannelId,
+        'দৈনিক রিমাইন্ডার',
+        channelDescription: 'দৈনিক ইসলামিক রিমাইন্ডার',
         importance: Importance.high,
         priority: Priority.high,
       ),
@@ -44,5 +294,91 @@ class NotificationService {
     await _plugin.show(id, title, body, details);
   }
 
+  /// Fires a notification a few seconds from now so the user can verify azan
+  /// works on their device without waiting for the next prayer.
+  Future<void> sendTestNotification() async {
+    await _initTimezone();
+    await _scheduleOne(
+      id: 999,
+      title: 'পরীক্ষামূলক আযান',
+      body: 'আযান নোটিফিকেশন ঠিকমতো কাজ করছে ✅',
+      when: DateTime.now().add(const Duration(seconds: 5)),
+      payload: '/prayer-time',
+    );
+  }
+
   Future<void> cancelAll() => _plugin.cancelAll();
+
+  /// Set by the app layer so a tapped notification can navigate (FR-N-27).
+  void Function(String route)? onNotificationRoute;
+  String? _pendingRoute;
+
+  String? takePendingRoute() {
+    final route = _pendingRoute;
+    _pendingRoute = null;
+    return route;
+  }
+
+  void _onTap(NotificationResponse response) {
+    final route = response.payload;
+    if (route == null || route.isEmpty) return;
+    final handler = onNotificationRoute;
+    if (handler != null) {
+      handler(route);
+    } else {
+      _pendingRoute = route;
+    }
+  }
+
+  /// NFR-07 — Bangla numerals.
+  static String _formatBangla(DateTime time) {
+    final hour12 = time.hour % 12 == 0 ? 12 : time.hour % 12;
+    final minute = time.minute.toString().padLeft(2, '0');
+    final period = time.hour < 12 ? 'সকাল' : (time.hour < 18 ? 'দুপুর' : 'রাত');
+    return '$period ${_bn(hour12.toString())}:${_bn(minute)}';
+  }
+
+  static String _bn(String value) {
+    const digits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    return value.split('').map((c) {
+      final i = int.tryParse(c);
+      return i == null ? c : digits[i];
+    }).join();
+  }
+}
+
+/// Per-prayer azan toggles, persisted (FR-N-23, SRS §4.9 `azanPerPrayer`).
+abstract class AzanPreferences {
+  static Map<PrayerSlot, bool> read() {
+    final raw = StorageService.instance.getString(StorageKeys.azanPerPrayer);
+    final enabled = <PrayerSlot, bool>{};
+
+    for (final slot in PrayerSlot.values) {
+      if (!slot.isNotifiable) {
+        enabled[slot] = false;
+        continue;
+      }
+      // Default ON for the five prayers: someone installing a prayer app
+      // wants prayer alerts. Sunrise is never notifiable (FR-N-23).
+      enabled[slot] = raw.isEmpty || raw.contains(slot.key);
+    }
+    return enabled;
+  }
+
+  static Future<void> write(Map<PrayerSlot, bool> enabled) async {
+    final on = enabled.entries
+        .where((e) => e.value && e.key.isNotifiable)
+        .map((e) => e.key.key)
+        .join(',');
+    // A single space marks "explicitly none", distinguishing it from the
+    // empty string that means "never configured, use defaults".
+    await StorageService.instance
+        .setString(StorageKeys.azanPerPrayer, on.isEmpty ? ' ' : on);
+  }
+
+  static int preReminderMinutes() =>
+      StorageService.instance.getInt(StorageKeys.preReminderMinutes);
+
+  static Future<void> setPreReminderMinutes(int minutes) =>
+      StorageService.instance.setInt(StorageKeys.preReminderMinutes, minutes);
 }

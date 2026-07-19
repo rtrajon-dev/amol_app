@@ -15,6 +15,8 @@ abstract class AppRoutes {
   static const forgotPassword = '/forgot-password';
 
   static const prayerTime = '/prayer-time';
+  static const azanSettings = '/azan-settings';
+  static const citySelector = '/city-selector';
   static const tasbeeh = '/tasbeeh';
   static const amalTracker = '/amal-tracker';
   static const qibla = '/qibla';

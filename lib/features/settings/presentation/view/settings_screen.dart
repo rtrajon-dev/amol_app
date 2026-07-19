@@ -130,6 +130,8 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
     final entitlement = ref.watch(entitlementProvider);
+    final locationName =
+        StorageService.instance.getString(StorageKeys.locationName);
 
     return Scaffold(
       appBar: AppBar(title: const Text('সেটিংস')),
@@ -152,9 +154,19 @@ class SettingsScreen extends ConsumerWidget {
           ]),
           SizedBox(height: 16.h),
           _SettingsSection(title: 'নামাজ', items: [
-            _SettingsItem(icon: Icons.location_on_outlined, title: 'শহর নির্বাচন', subtitle: 'ঢাকা', onTap: () {}),
+            _SettingsItem(
+              icon: Icons.location_on_outlined,
+              title: 'শহর নির্বাচন',
+              subtitle: locationName.isEmpty ? 'স্বয়ংক্রিয় (জিপিএস)' : locationName,
+              onTap: () => context.push(AppRoutes.citySelector),
+            ),
             _SettingsItem(icon: Icons.calculate_outlined, title: 'হিসাব পদ্ধতি', subtitle: 'কারাচি (হানাফি)', onTap: () {}),
-            _SettingsItem(icon: Icons.notifications_outlined, title: 'আযান নোটিফিকেশন', subtitle: 'চালু', onTap: () {}),
+            _SettingsItem(
+              icon: Icons.notifications_outlined,
+              title: 'আযান নোটিফিকেশন',
+              subtitle: 'ওয়াক্ত অনুযায়ী চালু/বন্ধ',
+              onTap: () => context.push(AppRoutes.azanSettings),
+            ),
           ]),
           SizedBox(height: 16.h),
           _SettingsSection(title: 'নোটিফিকেশন', items: [

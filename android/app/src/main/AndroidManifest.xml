@@ -1,4 +1,39 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- ==================== Azan / notifications (SRS docs/SRS.md §4.6) ====================
+         Without these the app cannot fire a single azan. None were declared
+         before, which is one reason G-03 ("no azan ever fires") was total. -->
+
+    <!-- Android 13+ (API 33). Requested at the moment the user enables a
+         notification, never at startup (FR-N-25). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <!-- Exact alarms. Inexact alarms can drift 15+ minutes, which is useless
+         for prayer: a Maghrib alert after the window has closed is worse than
+         none at all. USE_EXACT_ALARM is granted automatically on Android 13+
+         for alarm-clock-class apps, which a prayer-time app is; the
+         SCHEDULE_EXACT_ALARM fallback covers Android 12. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+
+    <!-- Re-schedule the rolling 7-day window after a reboot, otherwise every
+         pending azan is silently lost when the phone restarts. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
+    <!-- Let the device wake to deliver the alert while dozing. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+
+    <!-- Battery-optimisation exemption. Xiaomi, Realme, Oppo and Vivo — which
+         dominate the Bangladeshi market — kill scheduled alarms aggressively.
+         This is the single largest cause of "আযান আসে না" reports. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+
+    <!-- Prayer times and qibla (already used by geolocator). -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="Amol365"
         android:name="${applicationName}"
@@ -30,6 +65,28 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- flutter_local_notifications: restores scheduled azan after a
+             reboot. Without this receiver the rolling 7-day window is lost on
+             every restart and the user silently stops getting alerts. -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
+            android:exported="false"/>
+
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver"
+            android:exported="false"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

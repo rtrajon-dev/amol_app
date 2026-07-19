@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'di/azan_bootstrap.dart';
 import 'di/push_registrar.dart';
 import 'di/session_coordinator.dart';
 import 'router/app_router.dart';
@@ -21,6 +22,9 @@ class Amol365App extends ConsumerWidget {
 
     // FCM token registration and telemetry user/tier properties (M-6).
     ref.watch(pushRegistrarProvider);
+
+    // Keeps scheduled azan in step with location and the date (FR-N-15).
+    ref.watch(azanBootstrapProvider);
 
     return ScreenUtilInit(
       designSize: const Size(390, 844),

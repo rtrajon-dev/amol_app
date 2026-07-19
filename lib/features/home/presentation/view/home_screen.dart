@@ -43,7 +43,9 @@ class HomeScreen extends ConsumerWidget {
                         SizedBox(height: 4.h),
                         Text('ইসলামিক আমল', style: TextStyle(color: Colors.white, fontSize: 24.sp, fontWeight: FontWeight.bold)),
                         const Spacer(),
-                        NextPrayerBanner(prayerTimes: vm.todayPrayerTimes),
+                        // Reads nextPrayerProvider directly (FR-N-20) rather
+                        // than being handed a snapshot, so the countdown ticks.
+                        const NextPrayerBanner(),
                       ],
                     ),
                   ),

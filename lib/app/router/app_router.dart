@@ -13,6 +13,8 @@ import '../../features/home/presentation/view/home_screen.dart';
 import '../../features/islamic_calendar/presentation/view/calendar_screen.dart';
 import '../../features/names_of_allah/presentation/view/names_screen.dart';
 import '../../features/onboarding/presentation/view/onboarding_screen.dart';
+import '../../features/prayer_time/presentation/view/azan_settings_screen.dart';
+import '../../features/prayer_time/presentation/view/city_selector_screen.dart';
 import '../../features/prayer_time/presentation/view/prayer_time_screen.dart';
 import '../../features/qibla/presentation/view/qibla_screen.dart';
 import '../../features/ramadan/presentation/view/ramadan_screen.dart';
@@ -167,6 +169,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.prayerTime,
             builder: (_, _) => const PrayerTimeScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.azanSettings,
+            builder: (_, _) => const AzanSettingsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.citySelector,
+            builder: (_, _) => const CitySelectorScreen(),
           ),
           GoRoute(
             path: AppRoutes.tasbeeh,
