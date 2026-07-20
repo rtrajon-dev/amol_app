@@ -28,20 +28,25 @@ class ProfileScreen extends ConsumerWidget {
           _AccountHeader(email: auth.user?.email ?? ''),
           SizedBox(height: 20.h),
 
-          ProfileSection(
-            title: 'সাবস্ক্রিপশন',
-            children: [
-              SubscriptionStatusCard(
-                entitlement: entitlement,
-                // FR-PH-02 — Phase 1 offers no way to BUY. Checking and
-                // cancelling an existing subscription is account management,
-                // not a sales surface, and a web subscriber (FR-S-19) still
-                // needs both.
-                canSubscribe: flags.subscriptionEnabled,
-              ),
-            ],
-          ),
-          SizedBox(height: 20.h),
+          // Status and unsubscribe belong to subscribers only — a free user has
+          // nothing to check and nothing to cancel. In Phase 1 there is also
+          // nothing to sell (FR-PH-01), so the section disappears entirely
+          // rather than rendering an empty card.
+          if (SubscriptionStatusCard.isVisible(
+            entitlement: entitlement,
+            canSubscribe: flags.subscriptionEnabled,
+          )) ...[
+            ProfileSection(
+              title: 'সাবস্ক্রিপশন',
+              children: [
+                SubscriptionStatusCard(
+                  entitlement: entitlement,
+                  canSubscribe: flags.subscriptionEnabled,
+                ),
+              ],
+            ),
+            SizedBox(height: 20.h),
+          ],
 
           ProfileSection(
             title: 'অ্যাপ',

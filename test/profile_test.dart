@@ -78,32 +78,47 @@ void main() {
     });
   });
 
-  group('subscription — Phase 1 (FR-PH-02)', () {
-    testWidgets('shows no upgrade offer to a free user', (tester) async {
-      await pumpProfile(tester, flags: FeatureFlags.phase1);
-
-      expect(find.text('প্রিমিয়াম সাবস্ক্রিপশন'), findsNothing);
-      expect(find.textContaining('সপ্তাহে ৫ টাকা'), findsNothing);
-    });
-
-    testWidgets('still lets a web subscriber find their subscription',
+  group('subscription is for subscribers only', () {
+    testWidgets('a free user sees no subscription section at all',
         (tester) async {
       await pumpProfile(tester, flags: FeatureFlags.phase1);
 
-      // FR-S-19 — subscribed on the web, fresh install, empty cache. Without
-      // this there is no way to reach a subscription they already pay for.
-      expect(find.text('সাবস্ক্রিপশন চেক করুন'), findsOneWidget);
+      expect(find.text('সাবস্ক্রিপশন'), findsNothing);
+      expect(find.text('স্ট্যাটাস চেক করুন'), findsNothing);
+      expect(find.text('আনসাবস্ক্রাইব'), findsNothing);
     });
 
-    testWidgets('a premium user can still cancel', (tester) async {
+    testWidgets('a free user is never asked for a phone number',
+        (tester) async {
+      await pumpProfile(tester, flags: FeatureFlags.phase1);
+
+      // Entitlement arrives from /auth/me on launch (FR-S-21), so there is
+      // nothing for the user to type.
+      expect(find.byType(TextField), findsNothing);
+    });
+
+    testWidgets('a subscriber sees status and unsubscribe', (tester) async {
       await pumpProfile(
         tester,
         flags: FeatureFlags.phase1,
         entitlement: premium,
       );
 
-      expect(find.text('আনসাবস্ক্রাইব'), findsOneWidget);
       expect(find.text('প্রিমিয়াম সক্রিয়'), findsOneWidget);
+      expect(find.text('স্ট্যাটাস চেক করুন'), findsOneWidget);
+      expect(find.text('আনসাবস্ক্রাইব'), findsOneWidget);
+    });
+
+    testWidgets('a subscriber can cancel even in a phase that sells nothing',
+        (tester) async {
+      await pumpProfile(
+        tester,
+        flags: FeatureFlags.phase1,
+        entitlement: premium,
+      );
+
+      // Someone being charged must always have a way to stop it.
+      expect(find.text('আনসাবস্ক্রাইব'), findsOneWidget);
     });
 
     testWidgets('warns that cancelling also ends web access', (tester) async {
@@ -117,10 +132,10 @@ void main() {
       expect(find.textContaining('ওয়েবসাইটেও'), findsOneWidget);
     });
 
-    testWidgets('tells a free user everything is free', (tester) async {
+    testWidgets('shows no upgrade offer in Phase 1', (tester) async {
       await pumpProfile(tester, flags: FeatureFlags.phase1);
 
-      expect(find.text('সব ফিচার এখন ফ্রি'), findsOneWidget);
+      expect(find.text('প্রিমিয়াম সাবস্ক্রিপশন'), findsNothing);
     });
   });
 
