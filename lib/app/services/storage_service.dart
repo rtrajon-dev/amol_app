@@ -76,9 +76,15 @@ abstract class StorageKeys {
 
   static const selectedCity = 'selected_city';
   static const azanEnabled = 'azan_enabled';
+  /// The in-progress tasbeeh cycle — taps not yet forming a complete cycle.
+  ///
+  /// Lives here rather than in SQLite because it changes on every tap; a row
+  /// write per tap would thrash the disk. Completed cycles go to
+  /// `tasbeeh_sessions`, and amal history and streak are derived from
+  /// `amal_logs` rather than stored as scalars.
   static const tasbeehCount = 'tasbeeh_count';
-  static const lastAmalDate = 'last_amal_date';
-  static const amalStreak = 'amal_streak';
+  static const tasbeehSelectedId = 'tasbeeh_selected_id';
+
   static const calculationMethod = 'calculation_method';
   static const themeMode = 'theme_mode';
 }

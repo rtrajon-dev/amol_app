@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../global_widgets/loading_indicator.dart';
 import '../../domain/models/tasbeeh_model.dart';
 import '../viewmodel/tasbeeh_viewmodel.dart';
 import '../widgets/tasbeeh_selector.dart';
@@ -13,7 +14,7 @@ class TasbeehScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(tasbeehProvider);
+    final asyncState = ref.watch(tasbeehProvider);
     final notifier = ref.read(tasbeehProvider.notifier);
 
     return Scaffold(
@@ -27,7 +28,24 @@ class TasbeehScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Column(
+      body: asyncState.when(
+        loading: () => const LoadingIndicator(),
+        error: (_, _) => const Center(child: Text('তাসবিহ লোড করা যাচ্ছে না')),
+        data: (state) => _TasbeehBody(state: state, notifier: notifier),
+      ),
+    );
+  }
+}
+
+class _TasbeehBody extends StatelessWidget {
+  const _TasbeehBody({required this.state, required this.notifier});
+
+  final TasbeehState state;
+  final TasbeehNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
         children: [
           TasbeehSelector(
             presets: TasbeehModel.presets,
@@ -47,7 +65,7 @@ class TasbeehScreen extends ConsumerWidget {
             '${state.count}',
             style: TextStyle(fontSize: 80.sp, fontWeight: FontWeight.bold, color: AppColors.primary),
           ),
-          Text('মোট সেশন: ${state.totalSession}', style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary)),
+          Text('আজকের মোট: ${state.displayTotal}', style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary)),
           SizedBox(height: 8.h),
           LinearProgressIndicator(
             value: state.count / state.selected.target,
@@ -75,7 +93,6 @@ class TasbeehScreen extends ConsumerWidget {
             ),
           ),
         ],
-      ),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../global_widgets/loading_indicator.dart';
 import '../viewmodel/amal_tracker_viewmodel.dart';
 import '../widgets/amal_check_item.dart';
 import '../widgets/streak_banner.dart';
@@ -12,7 +13,7 @@ class AmalTrackerScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(amalTrackerProvider);
+    final asyncState = ref.watch(amalTrackerProvider);
     final notifier = ref.read(amalTrackerProvider.notifier);
 
     return Scaffold(
@@ -25,7 +26,24 @@ class AmalTrackerScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Column(
+      body: asyncState.when(
+        loading: () => const LoadingIndicator(),
+        error: (_, _) => const Center(child: Text('আমল লোড করা যাচ্ছে না')),
+        data: (state) => _AmalList(state: state, notifier: notifier),
+      ),
+    );
+  }
+}
+
+class _AmalList extends StatelessWidget {
+  const _AmalList({required this.state, required this.notifier});
+
+  final AmalTrackerState state;
+  final AmalTrackerNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
         children: [
           StreakBanner(streak: state.streak, completedCount: state.completedCount, totalCount: state.totalCount),
           if (state.allCompleted)
@@ -53,7 +71,6 @@ class AmalTrackerScreen extends ConsumerWidget {
             ),
           ),
         ],
-      ),
     );
   }
 }

@@ -11,12 +11,24 @@ import '../../features/subscription/data/bdapps_subscription_repository.dart';
 import '../../features/subscription/data/entitlement_cache.dart';
 import '../../features/subscription/data/subscription_api.dart';
 import '../../features/subscription/domain/subscription_repository.dart';
+import '../database/app_database.dart';
 import '../network/api_client.dart';
 import '../services/secure_storage_service.dart';
 import '../services/storage_service.dart';
 
 final sharedPreferencesProvider = FutureProvider<SharedPreferences>((ref) async {
   return SharedPreferences.getInstance();
+});
+
+/// Device-local store for amal history and tasbeeh sessions.
+///
+/// Opened lazily on first use rather than in `bootstrap()`: nothing on the
+/// startup path reads it, so opening it there would add disk I/O to cold start
+/// for no gain.
+final appDatabaseProvider = Provider<AppDatabase>((ref) {
+  final db = AppDatabase();
+  ref.onDispose(db.close);
+  return db;
 });
 
 final storageServiceProvider = Provider<StorageService>((ref) {
