@@ -322,6 +322,323 @@ class AmalLogsCompanion extends UpdateCompanion<AmalLogEntry> {
   }
 }
 
+class $RamadanLogsTable extends RamadanLogs
+    with TableInfo<$RamadanLogsTable, RamadanLogEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RamadanLogsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _itemIdMeta = const VerificationMeta('itemId');
+  @override
+  late final GeneratedColumn<String> itemId = GeneratedColumn<String>(
+    'item_id',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dayKeyMeta = const VerificationMeta('dayKey');
+  @override
+  late final GeneratedColumn<String> dayKey = GeneratedColumn<String>(
+    'day_key',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 10,
+      maxTextLength: 10,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, itemId, dayKey, completedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ramadan_logs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RamadanLogEntry> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('item_id')) {
+      context.handle(
+        _itemIdMeta,
+        itemId.isAcceptableOrUnknown(data['item_id']!, _itemIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_itemIdMeta);
+    }
+    if (data.containsKey('day_key')) {
+      context.handle(
+        _dayKeyMeta,
+        dayKey.isAcceptableOrUnknown(data['day_key']!, _dayKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dayKeyMeta);
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_completedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {itemId, dayKey},
+  ];
+  @override
+  RamadanLogEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RamadanLogEntry(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      itemId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}item_id'],
+      )!,
+      dayKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}day_key'],
+      )!,
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      )!,
+    );
+  }
+
+  @override
+  $RamadanLogsTable createAlias(String alias) {
+    return $RamadanLogsTable(attachedDatabase, alias);
+  }
+}
+
+class RamadanLogEntry extends DataClass implements Insertable<RamadanLogEntry> {
+  final int id;
+
+  /// Matches `RamadanAmalItem.id` (`tarawih`, `laylat_qadr`, …).
+  final String itemId;
+
+  /// Local calendar day, `YYYY-MM-DD`, as in [AmalLogs].
+  final String dayKey;
+  final DateTime completedAt;
+  const RamadanLogEntry({
+    required this.id,
+    required this.itemId,
+    required this.dayKey,
+    required this.completedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['item_id'] = Variable<String>(itemId);
+    map['day_key'] = Variable<String>(dayKey);
+    map['completed_at'] = Variable<DateTime>(completedAt);
+    return map;
+  }
+
+  RamadanLogsCompanion toCompanion(bool nullToAbsent) {
+    return RamadanLogsCompanion(
+      id: Value(id),
+      itemId: Value(itemId),
+      dayKey: Value(dayKey),
+      completedAt: Value(completedAt),
+    );
+  }
+
+  factory RamadanLogEntry.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RamadanLogEntry(
+      id: serializer.fromJson<int>(json['id']),
+      itemId: serializer.fromJson<String>(json['itemId']),
+      dayKey: serializer.fromJson<String>(json['dayKey']),
+      completedAt: serializer.fromJson<DateTime>(json['completedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'itemId': serializer.toJson<String>(itemId),
+      'dayKey': serializer.toJson<String>(dayKey),
+      'completedAt': serializer.toJson<DateTime>(completedAt),
+    };
+  }
+
+  RamadanLogEntry copyWith({
+    int? id,
+    String? itemId,
+    String? dayKey,
+    DateTime? completedAt,
+  }) => RamadanLogEntry(
+    id: id ?? this.id,
+    itemId: itemId ?? this.itemId,
+    dayKey: dayKey ?? this.dayKey,
+    completedAt: completedAt ?? this.completedAt,
+  );
+  RamadanLogEntry copyWithCompanion(RamadanLogsCompanion data) {
+    return RamadanLogEntry(
+      id: data.id.present ? data.id.value : this.id,
+      itemId: data.itemId.present ? data.itemId.value : this.itemId,
+      dayKey: data.dayKey.present ? data.dayKey.value : this.dayKey,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RamadanLogEntry(')
+          ..write('id: $id, ')
+          ..write('itemId: $itemId, ')
+          ..write('dayKey: $dayKey, ')
+          ..write('completedAt: $completedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, itemId, dayKey, completedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RamadanLogEntry &&
+          other.id == this.id &&
+          other.itemId == this.itemId &&
+          other.dayKey == this.dayKey &&
+          other.completedAt == this.completedAt);
+}
+
+class RamadanLogsCompanion extends UpdateCompanion<RamadanLogEntry> {
+  final Value<int> id;
+  final Value<String> itemId;
+  final Value<String> dayKey;
+  final Value<DateTime> completedAt;
+  const RamadanLogsCompanion({
+    this.id = const Value.absent(),
+    this.itemId = const Value.absent(),
+    this.dayKey = const Value.absent(),
+    this.completedAt = const Value.absent(),
+  });
+  RamadanLogsCompanion.insert({
+    this.id = const Value.absent(),
+    required String itemId,
+    required String dayKey,
+    required DateTime completedAt,
+  }) : itemId = Value(itemId),
+       dayKey = Value(dayKey),
+       completedAt = Value(completedAt);
+  static Insertable<RamadanLogEntry> custom({
+    Expression<int>? id,
+    Expression<String>? itemId,
+    Expression<String>? dayKey,
+    Expression<DateTime>? completedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (itemId != null) 'item_id': itemId,
+      if (dayKey != null) 'day_key': dayKey,
+      if (completedAt != null) 'completed_at': completedAt,
+    });
+  }
+
+  RamadanLogsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? itemId,
+    Value<String>? dayKey,
+    Value<DateTime>? completedAt,
+  }) {
+    return RamadanLogsCompanion(
+      id: id ?? this.id,
+      itemId: itemId ?? this.itemId,
+      dayKey: dayKey ?? this.dayKey,
+      completedAt: completedAt ?? this.completedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (itemId.present) {
+      map['item_id'] = Variable<String>(itemId.value);
+    }
+    if (dayKey.present) {
+      map['day_key'] = Variable<String>(dayKey.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RamadanLogsCompanion(')
+          ..write('id: $id, ')
+          ..write('itemId: $itemId, ')
+          ..write('dayKey: $dayKey, ')
+          ..write('completedAt: $completedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $TasbeehSessionsTable extends TasbeehSessions
     with TableInfo<$TasbeehSessionsTable, TasbeehSessionEntry> {
   @override
@@ -689,6 +1006,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $AmalLogsTable amalLogs = $AmalLogsTable(this);
+  late final $RamadanLogsTable ramadanLogs = $RamadanLogsTable(this);
   late final $TasbeehSessionsTable tasbeehSessions = $TasbeehSessionsTable(
     this,
   );
@@ -698,6 +1016,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     amalLogs,
+    ramadanLogs,
     tasbeehSessions,
   ];
 }
@@ -877,6 +1196,183 @@ typedef $$AmalLogsTableProcessedTableManager =
         BaseReferences<_$AppDatabase, $AmalLogsTable, AmalLogEntry>,
       ),
       AmalLogEntry,
+      PrefetchHooks Function()
+    >;
+typedef $$RamadanLogsTableCreateCompanionBuilder =
+    RamadanLogsCompanion Function({
+      Value<int> id,
+      required String itemId,
+      required String dayKey,
+      required DateTime completedAt,
+    });
+typedef $$RamadanLogsTableUpdateCompanionBuilder =
+    RamadanLogsCompanion Function({
+      Value<int> id,
+      Value<String> itemId,
+      Value<String> dayKey,
+      Value<DateTime> completedAt,
+    });
+
+class $$RamadanLogsTableFilterComposer
+    extends Composer<_$AppDatabase, $RamadanLogsTable> {
+  $$RamadanLogsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get itemId => $composableBuilder(
+    column: $table.itemId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dayKey => $composableBuilder(
+    column: $table.dayKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RamadanLogsTableOrderingComposer
+    extends Composer<_$AppDatabase, $RamadanLogsTable> {
+  $$RamadanLogsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get itemId => $composableBuilder(
+    column: $table.itemId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dayKey => $composableBuilder(
+    column: $table.dayKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RamadanLogsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RamadanLogsTable> {
+  $$RamadanLogsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get itemId =>
+      $composableBuilder(column: $table.itemId, builder: (column) => column);
+
+  GeneratedColumn<String> get dayKey =>
+      $composableBuilder(column: $table.dayKey, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$RamadanLogsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RamadanLogsTable,
+          RamadanLogEntry,
+          $$RamadanLogsTableFilterComposer,
+          $$RamadanLogsTableOrderingComposer,
+          $$RamadanLogsTableAnnotationComposer,
+          $$RamadanLogsTableCreateCompanionBuilder,
+          $$RamadanLogsTableUpdateCompanionBuilder,
+          (
+            RamadanLogEntry,
+            BaseReferences<_$AppDatabase, $RamadanLogsTable, RamadanLogEntry>,
+          ),
+          RamadanLogEntry,
+          PrefetchHooks Function()
+        > {
+  $$RamadanLogsTableTableManager(_$AppDatabase db, $RamadanLogsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RamadanLogsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RamadanLogsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RamadanLogsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> itemId = const Value.absent(),
+                Value<String> dayKey = const Value.absent(),
+                Value<DateTime> completedAt = const Value.absent(),
+              }) => RamadanLogsCompanion(
+                id: id,
+                itemId: itemId,
+                dayKey: dayKey,
+                completedAt: completedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String itemId,
+                required String dayKey,
+                required DateTime completedAt,
+              }) => RamadanLogsCompanion.insert(
+                id: id,
+                itemId: itemId,
+                dayKey: dayKey,
+                completedAt: completedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RamadanLogsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RamadanLogsTable,
+      RamadanLogEntry,
+      $$RamadanLogsTableFilterComposer,
+      $$RamadanLogsTableOrderingComposer,
+      $$RamadanLogsTableAnnotationComposer,
+      $$RamadanLogsTableCreateCompanionBuilder,
+      $$RamadanLogsTableUpdateCompanionBuilder,
+      (
+        RamadanLogEntry,
+        BaseReferences<_$AppDatabase, $RamadanLogsTable, RamadanLogEntry>,
+      ),
+      RamadanLogEntry,
       PrefetchHooks Function()
     >;
 typedef $$TasbeehSessionsTableCreateCompanionBuilder =
@@ -1091,6 +1587,8 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$AmalLogsTableTableManager get amalLogs =>
       $$AmalLogsTableTableManager(_db, _db.amalLogs);
+  $$RamadanLogsTableTableManager get ramadanLogs =>
+      $$RamadanLogsTableTableManager(_db, _db.ramadanLogs);
   $$TasbeehSessionsTableTableManager get tasbeehSessions =>
       $$TasbeehSessionsTableTableManager(_db, _db.tasbeehSessions);
 }

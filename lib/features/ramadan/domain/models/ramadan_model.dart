@@ -21,6 +21,12 @@ class RamadanAmalItem {
 
   const RamadanAmalItem({required this.id, required this.title, this.isCompleted = false});
 
+  RamadanAmalItem copyWith({bool? isCompleted}) => RamadanAmalItem(
+        id: id,
+        title: title,
+        isCompleted: isCompleted ?? this.isCompleted,
+      );
+
   static const defaultList = [
     RamadanAmalItem(id: 'tarawih', title: 'তারাবির নামাজ'),
     RamadanAmalItem(id: 'quran_page', title: 'কুরআন তিলাওয়াত (১ পারা)'),

@@ -28,6 +28,30 @@ class AmalLogs extends Table {
       ];
 }
 
+/// A completed Ramadan amal, one row per (item, day).
+///
+/// Deliberately a separate table from [AmalLogs] rather than sharing it with a
+/// namespaced id: `currentStreak` counts distinct days in `amal_logs`, so
+/// Ramadan check-ins stored there would silently inflate the daily amal streak
+/// with days the user never completed an ordinary amal.
+@DataClassName('RamadanLogEntry')
+class RamadanLogs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// Matches `RamadanAmalItem.id` (`tarawih`, `laylat_qadr`, …).
+  TextColumn get itemId => text().withLength(min: 1, max: 64)();
+
+  /// Local calendar day, `YYYY-MM-DD`, as in [AmalLogs].
+  TextColumn get dayKey => text().withLength(min: 10, max: 10)();
+
+  DateTimeColumn get completedAt => dateTime()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {itemId, dayKey},
+      ];
+}
+
 /// One row per completed tasbeeh cycle (count reaching its target).
 @DataClassName('TasbeehSessionEntry')
 class TasbeehSessions extends Table {
@@ -52,13 +76,24 @@ class TasbeehSessions extends Table {
 ///
 /// Bundled reference content (surahs, names, cities) does NOT belong here —
 /// that ships as JSON assets and is refreshed from the content manifest.
-@DriftDatabase(tables: [AmalLogs, TasbeehSessions])
+@DriftDatabase(tables: [AmalLogs, RamadanLogs, TasbeehSessions])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? driftDatabase(name: 'amol365'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          // v2 added ramadan_logs. Existing amal and tasbeeh history is left
+          // untouched — an upgrade that drops a user's streak is a bug, not a
+          // migration.
+          if (from < 2) await m.createTable(ramadanLogs);
+        },
+      );
 
   // ------------------------------------------------------------------ amal
 
@@ -133,6 +168,51 @@ class AppDatabase extends _$AppDatabase {
       cursor = cursor.subtract(const Duration(days: 1));
     }
     return streak;
+  }
+
+  // --------------------------------------------------------------- ramadan
+
+  /// The Ramadan amal ids completed on [dayKey].
+  Future<Set<String>> completedRamadanIds(String dayKey) async {
+    final rows =
+        await (select(ramadanLogs)..where((t) => t.dayKey.equals(dayKey))).get();
+    return rows.map((r) => r.itemId).toSet();
+  }
+
+  Future<void> markRamadanCompleted({
+    required String itemId,
+    required String dayKey,
+    required DateTime completedAt,
+  }) {
+    return into(ramadanLogs).insert(
+      RamadanLogsCompanion.insert(
+        itemId: itemId,
+        dayKey: dayKey,
+        completedAt: completedAt,
+      ),
+      mode: InsertMode.insertOrIgnore,
+    );
+  }
+
+  Future<void> clearRamadanCompleted({
+    required String itemId,
+    required String dayKey,
+  }) {
+    return (delete(ramadanLogs)
+          ..where((t) => t.itemId.equals(itemId) & t.dayKey.equals(dayKey)))
+        .go();
+  }
+
+  /// How many distinct days hold at least one completed Ramadan amal.
+  ///
+  /// Not a streak: Ramadan is a fixed 29-30 day season, so a running total is
+  /// the meaningful figure and a broken chain should not reset it to zero.
+  Future<int> ramadanDaysObserved() async {
+    final query = selectOnly(ramadanLogs, distinct: true)
+      ..addColumns([ramadanLogs.dayKey]);
+
+    final rows = await query.map((r) => r.read(ramadanLogs.dayKey)!).get();
+    return rows.toSet().length;
   }
 
   // --------------------------------------------------------------- tasbeeh

@@ -24,6 +24,7 @@ void main() {
 
   Future<void> wipe(AppDatabase db) async {
     await db.delete(db.amalLogs).go();
+    await db.delete(db.ramadanLogs).go();
     await db.delete(db.tasbeehSessions).go();
   }
 
@@ -102,6 +103,60 @@ void main() {
     final second = AppDatabase();
     expect(await second.completedAmalIds(day), isEmpty);
     await second.close();
+  });
+
+  testWidgets('ramadan check-ins survive a reopen', (tester) async {
+    final first = AppDatabase();
+    await wipe(first);
+    await first.markRamadanCompleted(
+      itemId: 'tarawih',
+      dayKey: day,
+      completedAt: DateTime(2026, 7, 20, 20),
+    );
+    await first.close();
+
+    final second = AppDatabase();
+    expect(await second.completedRamadanIds(day), {'tarawih'});
+    await wipe(second);
+    await second.close();
+  });
+
+  /// The v1→v2 migration added `ramadan_logs`. This runs on a device whose
+  /// on-disk database was created by the previous release, which is the only
+  /// place the upgrade path actually executes — an in-memory test always
+  /// starts at the current schema and would never touch `onUpgrade`.
+  testWidgets('the schema upgrade preserves existing amal history',
+      (tester) async {
+    final db = AppDatabase();
+    await wipe(db);
+
+    await db.markAmalCompleted(
+      amalId: 'fajr',
+      dayKey: day,
+      completedAt: DateTime(2026, 7, 20, 5),
+    );
+    await db.recordTasbeehCycle(
+      tasbeehId: 'subhanallah',
+      dayKey: day,
+      count: 33,
+      recordedAt: DateTime(2026, 7, 20, 9),
+    );
+    await db.close();
+
+    final reopened = AppDatabase();
+    // Pre-existing data intact...
+    expect(await reopened.completedAmalIds(day), {'fajr'});
+    expect(await reopened.tasbeehTotalForDay(day), 33);
+    // ...and the table the upgrade added is usable.
+    await reopened.markRamadanCompleted(
+      itemId: 'tarawih',
+      dayKey: day,
+      completedAt: DateTime(2026, 7, 20, 20),
+    );
+    expect(await reopened.completedRamadanIds(day), {'tarawih'});
+
+    await wipe(reopened);
+    await reopened.close();
   });
 
   /// The database tests above would all pass even if the screen were still
