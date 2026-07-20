@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/config/feature_flags.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../subscription/presentation/viewmodel/subscription_viewmodel.dart';
@@ -20,7 +21,14 @@ class AmalCheckItem extends ConsumerWidget {
     // FR-S-16 — the item stays VISIBLE when locked. Tapping it opens the
     // subscription flow rather than doing nothing, which is one of the two
     // conversion paths that survive FR-S-09 silencing the gate.
-    final isLocked = item.isPremium && !ref.watch(entitlementProvider).isPremium;
+    //
+    // FR-PH-02 — nothing is locked in a phase with no purchasable tier.
+    // Leaving the padlock on would advertise an upgrade the user cannot buy
+    // and send them to a route that now redirects away.
+    final subscriptionEnabled = ref.watch(featureFlagsProvider).subscriptionEnabled;
+    final isLocked = subscriptionEnabled &&
+        item.isPremium &&
+        !ref.watch(entitlementProvider).isPremium;
 
     void handleTap() {
       if (isLocked) {

@@ -109,12 +109,19 @@ class ContentSyncService {
   /// A key absent here is ignored rather than guessed at: a future server-side
   /// content type must not be written to an arbitrary local path by an old
   /// client.
+  ///
+  /// FR-PH-12 — that same behaviour withholds Phase 2 content. `hadiths`,
+  /// `surahs` and `surahsFull` are commented out rather than deleted so
+  /// Phase 2 is three uncommented lines. The server keeps advertising all of
+  /// them, which is what lets one manifest serve Phase 1 and Phase 2 clients
+  /// at the same time — both will be in the field together.
   static const fileNames = <String, String>{
-    'hadiths': ContentFiles.hadiths,
     'names': ContentFiles.namesOfAllah,
-    'surahs': ContentFiles.surahs,
-    'surahsFull': ContentFiles.surahsFull,
     'cities': ContentFiles.cities,
+    // Phase 2 (docs/SRS-Release-Phasing.md):
+    // 'hadiths': ContentFiles.hadiths,
+    // 'surahs': ContentFiles.surahs,
+    // 'surahsFull': ContentFiles.surahsFull,
   };
 
   static Future<Directory?> _defaultDocumentsDirectory() async {

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/config/feature_flags.dart';
 import '../../../../app/di/providers.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
@@ -93,8 +94,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class _QuickAccessGrid extends StatelessWidget {
-  final _items = const [
+class _QuickAccessGrid extends ConsumerWidget {
+  static const _items = [
     _QuickItem(icon: Icons.access_time, label: 'নামাজের সময়', route: AppRoutes.prayerTime, color: AppColors.fajr),
     _QuickItem(icon: Icons.explore_outlined, label: 'কিবলা', route: AppRoutes.qibla, color: AppColors.success),
     _QuickItem(icon: Icons.menu_book_outlined, label: 'হাদিস', route: AppRoutes.hadith, color: AppColors.warning),
@@ -104,7 +105,13 @@ class _QuickAccessGrid extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // FR-PH-07 — a withheld feature leaves no tile behind. The grid reflows to
+    // fill the gap rather than showing a hole where the feature used to be.
+    final flags = ref.watch(featureFlagsProvider);
+    final visible =
+        _items.where((i) => !flags.isRouteWithheld(i.route)).toList();
+
     return GridView.count(
       crossAxisCount: 3,
       shrinkWrap: true,
@@ -112,7 +119,7 @@ class _QuickAccessGrid extends StatelessWidget {
       crossAxisSpacing: 12.w,
       mainAxisSpacing: 12.h,
       childAspectRatio: 1,
-      children: _items.map((item) => _QuickAccessTile(item: item)).toList(),
+      children: visible.map((item) => _QuickAccessTile(item: item)).toList(),
     );
   }
 }

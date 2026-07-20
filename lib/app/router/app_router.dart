@@ -24,6 +24,7 @@ import '../../features/subscription/presentation/viewmodel/subscription_viewmode
 import '../../features/surah/presentation/view/surah_detail_screen.dart';
 import '../../features/surah/presentation/view/surah_screen.dart';
 import '../../features/tasbeeh/presentation/view/tasbeeh_screen.dart';
+import '../config/feature_flags.dart';
 import '../services/storage_service.dart';
 import '../shell/main_shell.dart';
 import 'app_routes.dart';
@@ -67,6 +68,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return path == AppRoutes.splash ? null : AppRoutes.splash;
       }
 
+      final flags = ref.read(featureFlagsProvider);
+
       // 2. Onboarding, once per install (FR-G-04).
       final onboardingDone =
           StorageService.instance.getBool(StorageKeys.onboardingDone);
@@ -74,10 +77,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return path == AppRoutes.onboarding ? null : AppRoutes.onboarding;
       }
       if (path == AppRoutes.onboarding) {
+        // Phase 1 has no gate to show, so onboarding leads straight on
+        // (FR-PH-02) rather than bouncing off a withheld route.
+        if (!flags.subscriptionEnabled) {
+          return auth.isAuthenticated ? AppRoutes.home : AppRoutes.login;
+        }
         return AppRoutes.subscription;
       }
 
-      // 3. Subscription gate (FR-G-01, FR-G-02) — OPTIONAL. It precedes login,
+      // 3. FR-PH-07 — routes belonging to a withheld feature refuse to render.
+      //    Hiding the entry tile is not enough: a deep link, a notification, or
+      //    a back-stack entry from an earlier build can each target a route
+      //    directly.
+      //
+      //    This precedes the subscription block deliberately. That block lets
+      //    `?manual=1` through unconditionally (FR-S-10), which is right when a
+      //    tier exists and wrong when Phase 1 has nothing to sell.
+      if (flags.isRouteWithheld(path)) {
+        return auth.isAuthenticated ? AppRoutes.home : AppRoutes.login;
+      }
+
+      // 4. Subscription gate (FR-G-01, FR-G-02) — OPTIONAL. It precedes login,
       //    and the ✕ dismisses it straight through to the next step. It is
       //    shown automatically at most three times (FR-S-09); after that it is
       //    reachable only from Settings or a locked feature (FR-S-10).

@@ -641,17 +641,25 @@ lib/features/subscription/          ← M-7 deletes this entire directory
 
 Per `FEATURES.md`. Restated here as the authoritative gating list:
 
-| Feature | Free | Premium |
-|---|---|---|
-| Prayer times, Qibla, Islamic calendar | ✅ | ✅ |
-| Tasbeeh counter | ✅ basic | ✅ full |
-| Amal tracker | ✅ 5 items | ✅ 9 items + Tahajjud |
-| Hadith of the day | ✅ in-app | ✅ + daily push |
-| Surah collection | ✅ 8 popular | ✅ all 114 |
-| 99 Names of Allah | ✅ partial | ✅ full + benefits |
-| Ramadan special mode | — | ✅ |
-| Audio recitation | — | ✅ (deferred, §12.3) |
-| Ads | shown | removed |
+**This table describes Phase 2 and later. Phase 1 has no premium tier** — see
+`docs/SRS-Release-Phasing.md` §4 and FR-PH-01.
+
+| Feature | Free | Premium | Phase |
+|---|---|---|---|
+| Prayer times, Qibla, Islamic calendar | ✅ | ✅ | 1 |
+| Tasbeeh counter | ✅ basic | ✅ full | 1 |
+| Amal tracker | ✅ all items in Phase 1 | ✅ 9 items + Tahajjud | 1 free / 2 gated |
+| 99 Names of Allah | ✅ partial | ✅ full + benefits | 1 |
+| Ramadan special mode | — | ✅ | 1 free / 2 gated |
+| Hadith of the day | ✅ in-app | ✅ + daily push | **2** |
+| Surah collection | ✅ 8 popular | ✅ all 114 | **2** |
+| Audio recitation | — | ✅ (deferred, §12.3) | — |
+| Ads | shown | removed | — |
+
+Both content features that carried the premium proposition — Hadith and Surah — are withheld
+from Phase 1. Nothing sellable remains, so Phase 1 ships with the subscription gate disabled
+(FR-PH-01) and no visible premium surface at all (FR-PH-02). The implementation stays in the
+tree and is enabled by flag in Phase 2 (FR-PH-03).
 
 ### 7.7 Shared subscriber base (web + mobile)
 
@@ -794,12 +802,17 @@ Startup SHALL NOT block on any network call. Gate and login decisions SHALL be m
 
 ### 9.1 Overview
 
-Ships content updates without an APK release (GB-04). Directly relevant: `lib/assets/data/` is currently **empty**, and premium value (all 114 surahs, full 99 names, daily hadiths) is content, not code.
+Ships content updates without an APK release (GB-04). Directly relevant: premium value is content, not code — and in Phase 1 that content is withheld, so the sync mechanism ships ahead of the content it will eventually carry (`docs/SRS-Release-Phasing.md`). This is deliberate: having the pipeline already in the field means Phase 2 content can reach existing installs without an APK update.
 
 ### 9.2 Functional Requirements
 
 **FR-C-01 — Bundled baseline**
-The app SHALL ship a complete v1 of every content file in `lib/assets/data/`. The app SHALL be fully functional with no network and no sync, forever.
+The app SHALL ship a complete v1 of every content file in `lib/assets/data/` **belonging to a feature visible in the current phase**. The app SHALL be fully functional with no network and no sync, forever.
+
+Phase 1 baseline: `cities.json` and `names_of_allah.json`.
+`hadiths.json`, `surahs.json` and `surahs_full.json` are excluded while the Hadith and Surah
+features are withheld (FR-PH-10, FR-PH-11); bundling content for an unreachable screen only
+inflates the APK.
 
 **FR-C-02 — Manifest**
 `GET /appbackend/v1/content/manifest` SHALL return per-file `version`, `url`, `sha256`, and `bytes`.
@@ -1002,6 +1015,8 @@ Consequences of C-BE-01 (frozen scripts) and of the platform. Recorded deliberat
 | 3.3 | M-6 | FCM, Crashlytics, Analytics, Remote Config | AC-P-01 … AC-P-05 |
 | 3.4 | M-5 | Content sync; populate `lib/assets/data/` | AC-C-01 … AC-C-05 |
 | — | M-7 | Executed only on withdrawal of BDApps | AC-R-01 … AC-R-04 |
+| Phase 1 | — | Public release. Hadith and Surah withheld; subscription gate disabled; app entirely free. | AC-PH-01 … AC-PH-11 |
+| Phase 2 | — | Enable the Hadith and Surah flags and the subscription tier. Requires `hadiths.json` (FR-PH-10) and `surahs_full.json` (FR-PH-11); needs no APK release if Remote Config carries the flags. | AC-PH-03 … AC-PH-05 |
 
 ### 15.1 Sequencing rationale
 
@@ -1013,7 +1028,9 @@ Consequences of C-BE-01 (frozen scripts) and of the platform. Recorded deliberat
 
 **M-6 before M-5** because telemetry is most valuable before the more complex module lands, not after. Shipping content sync blind is how silent field failures go unnoticed for months.
 
-**M-5 last**, and this is a genuine tension worth naming: `lib/assets/data/` is empty **today**, which means every content feature is currently a shell and the premium tier has little to sell. If bundled content (FR-C-01) is not populated during 3.0–3.3, the subscription flow will ship with nothing behind the paywall. **FR-C-01 is therefore a prerequisite of Release 3.2, even though the sync mechanism (FR-C-02 …) is deferred to 3.4.**
+**M-5 last**, and this is a genuine tension worth naming: if bundled content (FR-C-01) is not populated, the subscription flow ships with nothing behind the paywall. **FR-C-01 is therefore a prerequisite of Release 3.2, even though the sync mechanism (FR-C-02 …) is deferred to 3.4.**
+
+`docs/SRS-Release-Phasing.md` v1.1 resolves this tension by removing it rather than solving it: **both** content features that carried premium value — Hadith and Surah — are withheld to Phase 2, and Phase 1 ships free with the gate disabled (FR-PH-01). There is no longer a race between M-5 content and Release 3.2's paywall, because Phase 1 has no paywall. The sequencing argument above stands for Phase 2, when the tier is enabled by flag.
 
 ### 15.2 Independence
 

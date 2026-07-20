@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/config/feature_flags.dart';
 import '../../../../app/di/providers.dart';
 import '../../../../app/network/api_exception.dart';
 import '../../../../app/router/app_routes.dart';
@@ -130,6 +131,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
     final entitlement = ref.watch(entitlementProvider);
+    final flags = ref.watch(featureFlagsProvider);
     final locationName =
         StorageService.instance.getString(StorageKeys.locationName);
 
@@ -190,6 +192,11 @@ class SettingsScreen extends ConsumerWidget {
           SizedBox(height: 16.h),
           // FR-S-10 — one of only two conversion paths once the automatic
           // gate is silenced. Always visible to free users.
+          //
+          // FR-PH-02 — but absent entirely in a phase with no premium content:
+          // an existing subscriber still needs their cancel path, so the
+          // section is hidden only for users who have nothing to manage.
+          if (flags.subscriptionEnabled || entitlement.isPremium)
           _SettingsSection(title: 'প্রিমিয়াম', items: [
             if (entitlement.isPremium) ...[
               _SettingsItem(
