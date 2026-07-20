@@ -1,8 +1,10 @@
 import 'dart:io';
 
+import 'package:amol365/app/services/storage_service.dart';
 import 'package:amol365/features/subscription/domain/entitlement.dart';
 import 'package:amol365/features/subscription/presentation/viewmodel/subscription_viewmodel.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Removes comment lines so the isolation checks test CODE, not prose.
 ///
@@ -175,6 +177,83 @@ void main() {
 
     test('the automatic prompt limit is 3', () {
       expect(SubscriptionGatePolicy.maxAutomaticPrompts, 3);
+    });
+  });
+
+  group('gate resets on logout', () {
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      await StorageService.instance.init();
+    });
+
+    int promptCount() =>
+        StorageService.instance.getInt(StorageKeys.subGatePromptCount);
+
+    test('silence exhausts the allowance', () async {
+      await SubscriptionGatePolicy.silence();
+
+      expect(promptCount(), SubscriptionGatePolicy.maxAutomaticPrompts);
+    });
+
+    test('reset restores the full allowance', () async {
+      await SubscriptionGatePolicy.silence();
+      expect(promptCount(), SubscriptionGatePolicy.maxAutomaticPrompts);
+
+      await SubscriptionGatePolicy.reset();
+
+      // A logout begins a new session, often a different person on a shared
+      // phone; they must not inherit the previous user's exhausted counter.
+      expect(promptCount(), 0);
+    });
+
+    test('reset also clears the dismissal stamp', () async {
+      await SubscriptionGatePolicy.recordShown();
+      await SubscriptionGatePolicy.recordDismissed();
+
+      await SubscriptionGatePolicy.reset();
+
+      expect(promptCount(), 0);
+      expect(
+        StorageService.instance.getInt(StorageKeys.subGateDismissedAt),
+        0,
+        reason: 'a stale dismissal must not suppress the fresh allowance',
+      );
+    });
+
+    test('a restored allowance spans three prompts before exhausting',
+        () async {
+      await SubscriptionGatePolicy.silence();
+      await SubscriptionGatePolicy.reset();
+
+      for (var i = 0; i < SubscriptionGatePolicy.maxAutomaticPrompts; i++) {
+        expect(promptCount(),
+            lessThan(SubscriptionGatePolicy.maxAutomaticPrompts),
+            reason: 'prompt ${i + 1} should still be available');
+        await SubscriptionGatePolicy.recordShown();
+      }
+
+      expect(promptCount(), SubscriptionGatePolicy.maxAutomaticPrompts);
+    });
+
+    test('a subscriber is never prompted, reset or not', () async {
+      await SubscriptionGatePolicy.reset();
+
+      // Restoring the counter must not resurrect the gate for someone who is
+      // already paying.
+      expect(
+        SubscriptionGatePolicy.shouldShow(const Entitlement(tier: Tier.premium)),
+        isFalse,
+      );
+    });
+
+    test('the Phase 1 kill switch outranks a restored allowance', () async {
+      await SubscriptionGatePolicy.reset();
+
+      // FR-PH-01 — `subscription_gate_enabled` defaults to false, so a fresh
+      // allowance cannot bring the gate back while Phase 1 sells nothing.
+      // These tests therefore assert the counter rather than shouldShow: the
+      // reset is real, but inert until Phase 2 raises the flag.
+      expect(SubscriptionGatePolicy.shouldShow(Entitlement.free), isFalse);
     });
   });
 }

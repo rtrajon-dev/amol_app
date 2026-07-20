@@ -99,6 +99,18 @@ abstract class SubscriptionGatePolicy {
     await StorageService.instance
         .setInt(StorageKeys.subGatePromptCount, maxAutomaticPrompts);
   }
+
+  /// Start the FR-S-09 allowance over. Called on logout.
+  ///
+  /// The prompt cap exists so the gate cannot nag a user into uninstalling,
+  /// and that reasoning holds within one session — but a logout is a
+  /// deliberate act that begins a new one, often a different person on a
+  /// shared phone. Carrying an exhausted counter across it would mean the next
+  /// user is never offered the subscription at all.
+  static Future<void> reset() async {
+    await StorageService.instance.setInt(StorageKeys.subGatePromptCount, 0);
+    await StorageService.instance.remove(StorageKeys.subGateDismissedAt);
+  }
 }
 
 // ------------------------------------------------------------------ gate flow

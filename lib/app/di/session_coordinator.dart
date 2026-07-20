@@ -18,6 +18,13 @@ final sessionCoordinatorProvider = Provider<void>((ref) {
 
     if (wasSignedIn && isSignedOut) {
       ref.read(entitlementProvider.notifier).clear();
+
+      // The FR-S-09 prompt allowance starts over. That cap exists so the gate
+      // cannot nag someone into uninstalling, and it still holds within a
+      // session — but a logout begins a new one, often a different person on a
+      // shared phone. Carrying an exhausted counter across it would mean the
+      // next user is never offered the subscription at all.
+      SubscriptionGatePolicy.reset();
     }
 
     // A new sign-in revalidates rather than trusting whatever was cached:

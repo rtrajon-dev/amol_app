@@ -136,7 +136,8 @@ class AuthNotifier extends Notifier<AuthState> {
     state = state.copyWith(isBusy: true, clearFailure: true);
     try {
       await ref.read(authRepositoryProvider).deleteAccount(password);
-      await ref.read(subscriptionRepositoryProvider).clear();
+      // Entitlement and gate state are dropped by sessionCoordinatorProvider
+      // on the authenticated → unauthenticated transition below.
       state = const AuthState(status: AuthStatus.unauthenticated);
       return true;
     } on ApiException catch (e) {
@@ -157,6 +158,9 @@ class AuthNotifier extends Notifier<AuthState> {
 
   void clearFailure() => state = state.copyWith(clearFailure: true);
 
+  /// Dropping cached entitlement and resetting the gate belong to
+  /// `sessionCoordinatorProvider`, which watches this state. Auth must not
+  /// reach into the subscription module directly (SRS §4, dependency rule).
   Future<void> _clearSession() async {
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
