@@ -96,4 +96,9 @@ abstract class ContentFiles {
   static const namesOfAllah = 'names_of_allah.json';
   static const surahs = 'surahs.json';
   static const hadiths = 'hadiths.json';
+  static const cities = 'cities.json';
+
+  /// FR-C-08 — all 114 surahs, premium-only. Served only to entitled users and
+  /// enforced server-side; the client never decides its own entitlement.
+  static const surahsFull = 'surahs_full.json';
 }

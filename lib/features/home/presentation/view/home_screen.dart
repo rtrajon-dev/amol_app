@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/di/providers.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../global_widgets/section_header.dart';
@@ -10,11 +13,30 @@ import '../viewmodel/home_viewmodel.dart';
 import '../widgets/next_prayer_banner.dart';
 import '../widgets/amal_summary_card.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    // M-5 / FR-C-07 — content sync is attempted here, after the first frame,
+    // rather than in bootstrap(): FR-G-08 keeps network work off the launch
+    // path. The service itself decides whether a run is due, so calling this
+    // on every visit to Home costs nothing.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(ref.read(contentSyncServiceProvider).maybeSync());
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final vm = ref.watch(homeViewModelProvider);
 
     return Scaffold(

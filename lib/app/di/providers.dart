@@ -13,6 +13,7 @@ import '../../features/subscription/data/subscription_api.dart';
 import '../../features/subscription/domain/subscription_repository.dart';
 import '../database/app_database.dart';
 import '../network/api_client.dart';
+import '../services/content_sync_service.dart';
 import '../services/secure_storage_service.dart';
 import '../services/storage_service.dart';
 
@@ -81,6 +82,15 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   };
 
   return client;
+});
+
+/// M-5 — content downloader. Never invoked from `bootstrap()`: FR-C-07 and
+/// FR-G-08 both keep network work off the launch path.
+final contentSyncServiceProvider = Provider<ContentSyncService>((ref) {
+  return ContentSyncService(
+    api: ref.watch(apiClientProvider),
+    storage: ref.watch(storageServiceProvider),
+  );
 });
 
 final authApiProvider = Provider<AuthApi>((ref) {

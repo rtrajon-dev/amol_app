@@ -85,6 +85,15 @@ abstract class StorageKeys {
   static const tasbeehCount = 'tasbeeh_count';
   static const tasbeehSelectedId = 'tasbeeh_selected_id';
 
+  // ---- Content sync (SRS-Backend §9, M-5) ----
+
+  /// FR-C-03 — JSON map of manifest key to the installed version, so only
+  /// newer files are downloaded.
+  static const contentVersions = 'content_versions';
+
+  /// FR-C-07 — epoch ms of the last completed check, enforcing the 24h floor.
+  static const lastContentSyncAt = 'last_content_sync_at';
+
   static const calculationMethod = 'calculation_method';
   static const themeMode = 'theme_mode';
 }
