@@ -26,5 +26,6 @@ abstract class AppRoutes {
   static const surah = '/surah';
   static const surahDetail = '/surah/:id';
   static const ramadan = '/ramadan';
+  static const profile = '/profile';
   static const settings = '/settings';
 }

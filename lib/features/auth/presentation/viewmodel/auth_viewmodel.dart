@@ -129,6 +129,22 @@ class AuthNotifier extends Notifier<AuthState> {
     return _run(() => ref.read(authRepositoryProvider).forgotPassword(email));
   }
 
+  /// FR-A-12 — irreversible. The server requires the password because the
+  /// access token alone is not proof of intent: a borrowed unlocked phone
+  /// should not be able to destroy an account.
+  Future<bool> deleteAccount(String password) async {
+    state = state.copyWith(isBusy: true, clearFailure: true);
+    try {
+      await ref.read(authRepositoryProvider).deleteAccount(password);
+      await ref.read(subscriptionRepositoryProvider).clear();
+      state = const AuthState(status: AuthStatus.unauthenticated);
+      return true;
+    } on ApiException catch (e) {
+      state = state.copyWith(isBusy: false, failure: e);
+      return false;
+    }
+  }
+
   Future<void> logout() async {
     state = state.copyWith(isBusy: true, clearFailure: true);
     await ref.read(authRepositoryProvider).logout();

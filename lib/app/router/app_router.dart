@@ -16,6 +16,7 @@ import '../../features/onboarding/presentation/view/onboarding_screen.dart';
 import '../../features/prayer_time/presentation/view/azan_settings_screen.dart';
 import '../../features/prayer_time/presentation/view/city_selector_screen.dart';
 import '../../features/prayer_time/presentation/view/prayer_time_screen.dart';
+import '../../features/profile/presentation/view/profile_screen.dart';
 import '../../features/qibla/presentation/view/qibla_screen.dart';
 import '../../features/ramadan/presentation/view/ramadan_screen.dart';
 import '../../features/settings/presentation/view/settings_screen.dart';
@@ -236,6 +237,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.ramadan,
             builder: (_, _) => const RamadanScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.profile,
+            builder: (_, _) => const ProfileScreen(),
           ),
           GoRoute(
             path: AppRoutes.settings,

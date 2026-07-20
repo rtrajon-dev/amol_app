@@ -9,12 +9,20 @@ class MainShell extends StatelessWidget {
 
   final Widget child;
 
-  static const _tabs = [
+  /// Four tabs, ordered by daily frequency.
+  ///
+  /// This list is positionally coupled to `AppBottomNavBar.items` — index N
+  /// here must be the item at index N there. Editing one without the other
+  /// routes taps to the wrong screen, and nothing catches it at compile time.
+  ///
+  /// তাসবিহ and রমজান moved to the home grid: tasbeeh is used in sessions
+  /// rather than constantly, and Ramadan is relevant about thirty days a year,
+  /// which is a poor use of a permanent slot.
+  static const tabs = [
     AppRoutes.home,
-    AppRoutes.amalTracker,
     AppRoutes.prayerTime,
-    AppRoutes.tasbeeh,
-    AppRoutes.ramadan,
+    AppRoutes.amalTracker,
+    AppRoutes.profile,
   ];
 
   @override
@@ -26,10 +34,10 @@ class MainShell extends StatelessWidget {
       body: child,
       bottomNavigationBar: AppBottomNavBar(
         currentIndex: currentIndex < 0 ? 0 : currentIndex,
-        onTap: (i) => context.go(_tabs[i]),
+        onTap: (i) => context.go(tabs[i]),
       ),
     );
   }
 
-  int _tabIndexFor(String path) => _tabs.indexWhere((t) => path == t);
+  int _tabIndexFor(String path) => tabs.indexWhere((t) => path == t);
 }

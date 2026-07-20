@@ -76,10 +76,20 @@ void main() {
     testWidgets('keeps every shipping tile', (tester) async {
       await pump(tester, const HomeScreen(), flags: FeatureFlags.phase1);
 
-      expect(find.text('নামাজের সময়'), findsOneWidget);
       expect(find.text('কিবলা'), findsOneWidget);
       expect(find.text('তাসবিহ'), findsOneWidget);
       expect(find.text('ক্যালেন্ডার'), findsOneWidget);
+      // Dropped from the nav when it went to four tabs, so the grid is now
+      // the only way in.
+      expect(find.text('রমজান'), findsOneWidget);
+    });
+
+    testWidgets('does not duplicate a feature that owns a tab', (tester) async {
+      await pump(tester, const HomeScreen(), flags: FeatureFlags.phase1);
+
+      // নামাজ is a permanent tab; a tile would spend a grid slot on a screen
+      // that is always one tap away.
+      expect(find.text('নামাজের সময়'), findsNothing);
     });
 
     testWidgets('restores both tiles when the flags are raised',

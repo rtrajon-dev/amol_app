@@ -95,13 +95,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class _QuickAccessGrid extends ConsumerWidget {
+  /// Everything not in the bottom nav has to be reachable from here.
+  ///
+  /// নামাজের সময় is deliberately absent: it is a permanent tab, and a tile
+  /// duplicating it would spend a grid slot on a screen that is always one tap
+  /// away. তাসবিহ and রমজান moved here when the nav dropped to four.
   static const _items = [
-    _QuickItem(icon: Icons.access_time, label: 'নামাজের সময়', route: AppRoutes.prayerTime, color: AppColors.fajr),
     _QuickItem(icon: Icons.explore_outlined, label: 'কিবলা', route: AppRoutes.qibla, color: AppColors.success),
-    _QuickItem(icon: Icons.menu_book_outlined, label: 'হাদিস', route: AppRoutes.hadith, color: AppColors.warning),
     _QuickItem(icon: Icons.loop, label: 'তাসবিহ', route: AppRoutes.tasbeeh, color: AppColors.primaryLight),
-    _QuickItem(icon: Icons.book_outlined, label: 'সূরা', route: AppRoutes.surah, color: AppColors.accent),
+    _QuickItem(icon: Icons.star_outline, label: 'রমজান', route: AppRoutes.ramadan, color: AppColors.accent),
     _QuickItem(icon: Icons.calendar_month_outlined, label: 'ক্যালেন্ডার', route: AppRoutes.islamicCalendar, color: AppColors.asr),
+    _QuickItem(icon: Icons.menu_book_outlined, label: 'হাদিস', route: AppRoutes.hadith, color: AppColors.warning),
+    _QuickItem(icon: Icons.book_outlined, label: 'সূরা', route: AppRoutes.surah, color: AppColors.accent),
   ];
 
   @override
