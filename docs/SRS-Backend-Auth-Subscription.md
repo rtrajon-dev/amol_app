@@ -163,7 +163,7 @@ The application becomes a **thin-server** product: a device-local app that consu
 |---|---|
 | BDApps callbacks | Require a stable public HTTPS endpoint. The Firebase equivalent (Cloud Functions) requires the Blaze plan and an international payment card — a material obstacle. cPanel serves this for a fixed annual fee. |
 | Data shape | Content is static, read-mostly, and identical for all users — a CDN problem, not a document-database problem. Firestore would charge per read, in perpetuity, for data that never changes. |
-| Cost predictability | Revenue is 5 BDT/week/subscriber. A fixed hosting cost is compatible with that; an unbounded usage-metered bill is not. |
+| Cost predictability | Revenue is 2.78 BDT/day/subscriber, gross of VAT and the BDApps share. A fixed hosting cost is compatible with that; an unbounded usage-metered bill is not. |
 | Existing competence | The production BDApps integration is already PHP. Reusing that stack removes an entire class of integration risk. |
 | Push / crash / analytics | Firebase is free, unmetered at this scale, and has no self-hosted equivalent worth building. Adopted without reservation. |
 
@@ -683,7 +683,7 @@ check"*). The mobile app identifies users by email and password (M-2). Both reso
 between two products** and SHALL NOT be schema-changed without considering the web app.
 
 **FR-S-22 — Revenue is counted once per subscriber**
-A subscriber active on both platforms is one subscriber generating 5 BDT/week, not two. Any
+A subscriber active on both platforms is one subscriber generating 2.78 BDT/day, not two. Any
 projection or report SHALL count distinct MSISDNs, never per-platform sessions.
 
 ### 7.8 Non-Functional Requirements

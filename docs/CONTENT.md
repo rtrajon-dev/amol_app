@@ -97,7 +97,7 @@ a few surahs, ship them via the content manifest (M-5 / `docs/SRS-Backend-Auth-S
 
 ## 5. Licensing
 
-**This is a commercial app** (5 BDT/week). Bundling copyrighted text without a
+**This is a commercial app** (2.78 BDT/day). Bundling copyrighted text without a
 licence is a real legal exposure, not a formality.
 
 | Content | Status |

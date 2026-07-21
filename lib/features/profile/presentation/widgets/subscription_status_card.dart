@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/config/pricing.dart';
 import '../../../../app/di/providers.dart';
 import '../../../../app/network/api_exception.dart';
 import '../../../../app/router/app_routes.dart';
@@ -76,15 +77,16 @@ class SubscriptionStatusCard extends ConsumerWidget {
     return ProfileTile(
       icon: Icons.star_outline,
       title: 'প্রিমিয়াম সাবস্ক্রিপশন',
-      subtitle: 'সপ্তাহে ৫ টাকা',
+      subtitle: Pricing.dailyWithTax,
       onTap: () => context.push('${AppRoutes.subscription}?manual=1'),
     );
   }
 
   String _activeSubtitle() {
     final masked = entitlement.maskedMsisdn;
-    final base =
-        masked == null ? 'সাপ্তাহিক ৫ টাকা' : '$masked · সাপ্তাহিক ৫ টাকা';
+    final base = masked == null
+        ? Pricing.activeSummary
+        : '$masked · ${Pricing.activeSummary}';
     // FR-S-15 — say when the answer is old rather than implying it is fresh.
     return entitlement.isStale ? '$base · যাচাই করা যায়নি' : base;
   }

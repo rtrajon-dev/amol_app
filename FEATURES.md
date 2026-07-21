@@ -224,7 +224,9 @@ Full specification: `docs/SRS-Backend-Auth-Subscription.md`
 | Amal tracker | ✅ (basic 5 items) |
 | Surah collection | ✅ (8 popular) |
 
-### Premium Tier — সাপ্তাহিক ৫ টাকা (Weekly 5 BDT)
+### Premium Tier — প্রতিদিন ২.৭৮ টাকা (2.78 BDT/day)
+
+Inclusive of VAT, supplementary duty and service charge. Robi and Airtel only.
 | Feature | Premium |
 |---|---|
 | Full amal tracker (9 items + Tahajjud) | ✅ |
@@ -236,18 +238,29 @@ Full specification: `docs/SRS-Backend-Auth-Subscription.md`
 | Ad-free | ✅ |
 
 ### BDApps Integration Points
-- **Carrier Billing API** — weekly subscription charge (5 BDT)
+- **Carrier Billing API** — daily subscription charge (2.78 BDT incl. VAT + SD + SC)
 - **Subscription API** — subscribe / unsubscribe / status via OTP
 - **SMS API** — prayer time alerts for feature phone users (future)
 
 ### Revenue Projection (Conservative)
-| Users | Weekly Rate | Monthly Revenue |
-|---|---|---|
-| 1,000 subscribers | 5 BDT | ~20,000 BDT |
-| 5,000 subscribers | 5 BDT | ~100,000 BDT |
-| 10,000 subscribers | 5 BDT | ~200,000 BDT |
 
-*BDApps revenue share: ~70% developer, 30% Robi*
+Gross billed, 30-day month, at 2.78 BDT/day:
+
+| Users | Daily Rate | Monthly Gross |
+|---|---|---|
+| 1,000 subscribers | 2.78 BDT | ~83,400 BDT |
+| 5,000 subscribers | 2.78 BDT | ~417,000 BDT |
+| 10,000 subscribers | 2.78 BDT | ~834,000 BDT |
+
+**Gross, not net.** Two deductions apply and neither is modelled here:
+
+1. The 2.78 figure is **inclusive** of VAT, supplementary duty and service
+   charge, so the pre-tax amount is lower.
+2. BDApps then takes its share of what remains (~70% developer / 30% Robi).
+
+Net revenue therefore needs the current tax rates and the exact BDApps split
+before it means anything. The previous version of this table quoted 5 BDT/week
+and did not carry either caveat.
 
 ---
 

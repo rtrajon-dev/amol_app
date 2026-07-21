@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../app/config/pricing.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../global_widgets/primary_button.dart';
 import '../viewmodel/subscription_viewmodel.dart';
@@ -192,7 +193,7 @@ class _SubscriptionGateScreenState extends ConsumerState<SubscriptionGateScreen>
         ),
         SizedBox(height: 10.h),
         Text(
-          'সপ্তাহে মাত্র ৫ টাকা',
+          Pricing.daily,
           style: TextStyle(fontSize: 17.sp, color: AppColors.accent, fontWeight: FontWeight.w600),
           textAlign: TextAlign.center,
         ),
@@ -238,8 +239,8 @@ class _SubscriptionGateScreenState extends ConsumerState<SubscriptionGateScreen>
         SizedBox(height: 12.h),
 
         Text(
-          'আপনার মোবাইল ব্যালেন্স থেকে সাপ্তাহিক ৫ টাকা কাটা হবে। '
-          'যেকোনো সময় সেটিংস থেকে বাতিল করতে পারবেন।',
+          '${Pricing.disclosure} '
+          'যেকোনো সময় প্রোফাইল থেকে বাতিল করতে পারবেন।',
           style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary, height: 1.6),
           textAlign: TextAlign.center,
         ),

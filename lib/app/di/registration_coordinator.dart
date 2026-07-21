@@ -10,7 +10,7 @@ import 'providers.dart';
 /// The router holds navigation on this. Without it, `authProvider` flipping to
 /// authenticated would immediately redirect to the paywall, and the status
 /// check would arrive a moment later and bounce the user to Home — so someone
-/// who already pays would be shown a "৫ টাকা কাটা হবে" screen for a second
+/// who already pays would be shown a "টাকা কাটা হবে" screen for a second
 /// before it vanished. That flash is exactly what this flow exists to prevent.
 final subscriptionResolvingProvider =
     NotifierProvider<_FlagNotifier, bool>(_FlagNotifier.new);

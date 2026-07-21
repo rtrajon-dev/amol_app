@@ -291,5 +291,5 @@ This document supersedes the following where they conflict.
 | OQ-PH-03 | Which Quran source for `surahs_full.json` — Tanzil, King Fahd Complex, or another? Needed before Phase 2. | Product owner |
 | OQ-PH-04 | Does Phase 2 have a target date, or is it content-ready-driven? Affects whether Remote Config enablement suffices or a full release is planned. | Product owner |
 | OQ-PH-05 | A first-run user with no data connection cannot register and therefore cannot enter at all. Acceptable for a carrier-distributed app, or is an offline-tolerant path needed? | Product owner |
-| OQ-PH-06 | Is the Phase 1 feature set worth 5 BDT/week to a user who has seen none of it? Remaining: prayer times, azan, qibla, amal tracker, tasbeeh, 99 Names, calendar, Ramadan. | Product owner |
+| OQ-PH-06 | Is the Phase 1 feature set worth 2.78 BDT/day to a user who has seen none of it? Remaining: prayer times, azan, qibla, amal tracker, tasbeeh, 99 Names, calendar, Ramadan. | Product owner |
 | OQ-PH-07 | Existing Phase 1 installs, if any ship before the paywall: an update that locks them out is hostile. Grandfather them, or is this pre-launch only? | Product owner |
