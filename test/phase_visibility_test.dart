@@ -101,37 +101,39 @@ void main() {
     });
   });
 
-  group('premium lock (FR-PH-02)', () {
+  group('premium lock', () {
     final tahajjud = AmalItemModel.defaultList.firstWhere((i) => i.isPremium);
 
-    testWidgets('does not lock a premium item when nothing can be bought',
-        (tester) async {
+    testWidgets('locks a premium item when a tier is on sale', (tester) async {
       await pump(
         tester,
-        Scaffold(
-          body: AmalCheckItem(item: tahajjud, onToggle: () {}),
-        ),
+        Scaffold(body: AmalCheckItem(item: tahajjud, onToggle: () {})),
         flags: FeatureFlags.phase1,
       );
 
-      expect(find.byIcon(Icons.lock), findsNothing,
-          reason: 'a padlock advertises a tier the user cannot purchase');
-    });
-
-    testWidgets('locks it again once the tier exists', (tester) async {
-      await pump(
-        tester,
-        Scaffold(
-          body: AmalCheckItem(item: tahajjud, onToggle: () {}),
-        ),
-        flags: phase2,
-      );
-
-      // Two appear when locked: the check circle and the PremiumBadge.
+      // Under FR-G-06 only subscribers are inside the app, so this padlock is
+      // effectively unreachable — it stays as the guard for a future phase
+      // that sells individual features rather than the whole app.
       expect(find.byIcon(Icons.lock), findsAtLeastNWidgets(1));
     });
 
-    testWidgets('a premium item is tappable in Phase 1', (tester) async {
+    testWidgets('does not lock when the kill switch is off', (tester) async {
+      // FR-P-07 — with billing disabled a padlock would point at a flow the
+      // user cannot complete and a route that redirects away.
+      await pump(
+        tester,
+        Scaffold(body: AmalCheckItem(item: tahajjud, onToggle: () {})),
+        flags: const FeatureFlags(
+          hadithEnabled: false,
+          surahEnabled: false,
+          subscriptionEnabled: false,
+        ),
+      );
+
+      expect(find.byIcon(Icons.lock), findsNothing);
+    });
+
+    testWidgets('is completable when billing is disabled', (tester) async {
       var toggled = false;
 
       await pump(
@@ -139,13 +141,16 @@ void main() {
         Scaffold(
           body: AmalCheckItem(item: tahajjud, onToggle: () => toggled = true),
         ),
-        flags: FeatureFlags.phase1,
+        flags: const FeatureFlags(
+          hadithEnabled: false,
+          surahEnabled: false,
+          subscriptionEnabled: false,
+        ),
       );
 
       await tester.tap(find.text(tahajjud.title));
       await tester.pump();
 
-      // AC-PH-10 — it completes rather than opening a dead subscription route.
       expect(toggled, isTrue);
     });
   });

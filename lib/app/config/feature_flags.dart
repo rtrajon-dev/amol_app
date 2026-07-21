@@ -28,8 +28,13 @@ class FeatureFlags {
   /// FR-PH-11 — requires all 114 surahs in `surahs_full.json`.
   final bool surahEnabled;
 
-  /// FR-PH-01 / FR-PH-02 — the paywall and every surface that advertises it.
-  /// False for Phase 1, which has no premium content to sell.
+  /// FR-G-06 — the mandatory paywall.
+  ///
+  /// The whole app is the paid product, so this is `true` in Phase 1 rather
+  /// than waiting on premium *content*. It doubles as the FR-P-07 kill switch,
+  /// and that role matters more under a hard gate than it did under a soft
+  /// one: if BDApps billing fails, turning this off from the console is the
+  /// only way to stop locking every user out of an app they cannot buy.
   final bool subscriptionEnabled;
 
   factory FeatureFlags.fromRemoteConfig(RemoteConfigService config) {
@@ -40,12 +45,22 @@ class FeatureFlags {
     );
   }
 
-  /// Phase 1 as shipped. Used where no container is available.
+  /// Phase 1 as shipped: content withheld, paywall on.
   static const phase1 = FeatureFlags(
     hadithEnabled: false,
     surahEnabled: false,
-    subscriptionEnabled: false,
+    subscriptionEnabled: true,
   );
+
+  /// Whether an authenticated user must subscribe before entering the app
+  /// (FR-G-06).
+  ///
+  /// Takes a bool rather than an `Entitlement` so `app/` keeps no dependency
+  /// on the subscription feature. Stale-but-premium counts as premium: an
+  /// offline subscriber inside the FR-S-15 grace window must not be locked out
+  /// of something they have paid for.
+  bool requiresSubscription({required bool isPremium}) =>
+      subscriptionEnabled && !isPremium;
 
   /// Whether [route] belongs to a feature this phase withholds.
   ///

@@ -12,10 +12,17 @@ void main() {
   );
 
   group('Phase 1 defaults', () {
-    test('withholds both content features and the paywall', () {
+    test('withholds both content features but sells the app', () {
       expect(allOff.hadithEnabled, isFalse);
       expect(allOff.surahEnabled, isFalse);
-      expect(allOff.subscriptionEnabled, isFalse);
+      // FR-G-06 — the whole app is the paid product, so the paywall ships on
+      // even though Hadith and Surah are held back.
+      expect(allOff.subscriptionEnabled, isTrue);
+    });
+
+    test('gates an unsubscribed user and lets a subscriber through', () {
+      expect(allOff.requiresSubscription(isPremium: false), isTrue);
+      expect(allOff.requiresSubscription(isPremium: true), isFalse);
     });
   });
 
@@ -34,8 +41,20 @@ void main() {
       expect(allOff.isRouteWithheld('/surah/114'), isTrue);
     });
 
-    test('withholds the subscription route', () {
-      expect(allOff.isRouteWithheld(AppRoutes.subscription), isTrue);
+    test('does not withhold the subscription route — it is the gate', () {
+      expect(allOff.isRouteWithheld(AppRoutes.subscription), isFalse);
+    });
+
+    test('withholds the subscription route only when billing is off', () {
+      const killed = FeatureFlags(
+        hadithEnabled: false,
+        surahEnabled: false,
+        subscriptionEnabled: false,
+      );
+
+      // FR-P-07 — with billing disabled nobody should sit on a gate they
+      // cannot complete.
+      expect(killed.isRouteWithheld(AppRoutes.subscription), isTrue);
     });
 
     test('leaves every shipping feature reachable', () {

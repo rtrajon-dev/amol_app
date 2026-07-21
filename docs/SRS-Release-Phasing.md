@@ -15,6 +15,7 @@
 |---|---|---|
 | 1.0 | 2026-07-20 | Initial. Defines Phase 1 / Phase 2 scope and the feature-visibility mechanism. |
 | 1.1 | 2026-07-20 | Surah withheld to Phase 2 alongside Hadith. Phase 1 therefore ships with no premium content, and the subscription gate becomes disabled-by-requirement rather than by fallback (§4). |
+| 1.2 | 2026-07-21 | Monetisation changed: the whole app is the paid product, so Phase 1 ships with a MANDATORY paywall after login. Supersedes v1.1 §4 entirely. |
 
 ---
 
@@ -105,46 +106,58 @@ it carries Phase 1's content value on its own.
 
 ---
 
-## 4. Consequence: Phase 1 ships free
+## 4. Monetisation: the whole app is the product
 
-`SRS-Backend-Auth-Subscription.md` §7.6 defines premium value as *"all 114 surahs, full 99
-names, daily hadiths"*. Withholding both Hadith and Surah removes two of the three, and the
-third — the 99 Names — is not currently gated anywhere in the code.
+`SRS-Backend-Auth-Subscription.md` §7.6 originally defined premium as specific *content* — all
+114 surahs, the full 99 names, daily hadiths. Withholding Hadith and Surah left that model with
+nothing to sell, and v1.1 of this document responded by shipping Phase 1 free.
 
-**Phase 1 therefore has no sellable premium content.** The only premium-gated element in the
-codebase is a single `tahajjud` item in the amal tracker (`amal_item_model.dart`). A 5 BDT/week
-subscription whose entire value is one extra checkbox is not a product; it is a refund
-liability, a likely store-review objection, and a fast route to BDApps complaints.
+**v1.2 replaces the model rather than patching it.** Amol365 is sold as a whole: prayer times,
+azan, qibla, the amal tracker, tasbeeh, the calendar, the 99 Names and Ramadan mode are the
+product, and access to them requires a subscription. Content differentiation is no longer what
+the tier rests on, which is why withholding two content features no longer empties it.
 
-This is not a defect to be worked around. It is the correct consequence of deferring both
-content features, and the release plan follows it rather than fighting it.
+**FR-MG-01 — Subscription is mandatory** (canonical ID: FR-G-06 in the backend SRS)
+An authenticated user without entitlement SHALL NOT reach any feature. The gate is shown after
+login and cannot be dismissed.
 
-**FR-PH-01 — Phase 1 SHALL ship with the subscription gate disabled**
-The `subscription_gate_enabled` Remote Config flag (FR-P-07) SHALL be `false` for Phase 1, and
-the shipped default SHALL also be `false` so that a device which never reaches Firebase behaves
-identically. Every Phase 1 feature is free.
+**FR-MG-02 — The gate follows login, not onboarding**
+Order is Splash → Onboarding → Login/Register → Subscription → Home. A user must have an account
+before subscribing, so entitlement always has an account to bind to (FR-S-12).
 
-This is now a requirement, not a fallback. In v1.0 of this document it was the contingency if
-`surahs_full.json` slipped; with Surah withheld there is nothing left for the gate to sell.
+**FR-MG-03 — A gated user SHALL always be able to sign out**
+The mandatory gate SHALL offer sign-out in place of the dismiss control. A user who cannot or
+will not pay must never be trapped in an app with no exit and no route to another account.
 
-**FR-PH-02 — No visible subscription surface in Phase 1**
-While the gate is disabled, the app SHALL NOT show subscription entry points: the premium row
-in Settings, the `PremiumLock` badge, and the automatic gate prompt (FR-S-09) SHALL all be
-absent. The `tahajjud` amal item SHALL be free in Phase 1 rather than locked against a tier the
-user cannot buy.
+**FR-MG-04 — Device-local data SHALL survive**
+Losing entitlement SHALL NOT delete amal history, tasbeeh counts or streaks. Access is what
+lapses, not the user's record of their own worship.
 
-**FR-PH-03 — The subscription implementation is retained, not removed**
-M-2, M-3 and M-4 remain in the codebase, tested and working. Phase 2 enables the tier by
-flipping the flag once content exists; no re-implementation is required. Deleting the
-subscription code because Phase 1 does not use it would be a costly and unnecessary reversal.
+**FR-MG-05 — The kill switch is now load-bearing**
+`subscription_gate_enabled` (FR-P-07) SHALL remain reachable from Remote Config. Under a soft
+gate it was a convenience; under a mandatory one it is the only way to release users if BDApps
+billing fails, and a carrier outage would otherwise lock every user out of an app they cannot
+buy. Setting it false SHALL make every feature reachable without subscription.
 
-**FR-PH-04 — Auth remains in force**
-Disabling the paywall does not disable accounts. FR-G-03's login requirement is unchanged, so
-entitlement can be attached to an existing user base the moment Phase 2 turns the tier on.
+**FR-MG-06 — Lapsing stops everything, azan included**
+When entitlement is lost, scheduled azan notifications SHALL be cancelled. Pending alarms
+outlive the app process, so a lapse that only guards the UI would keep delivering the paid
+feature indefinitely. Conversely, a new subscription SHALL reschedule them immediately, so a
+subscriber never silently misses prayers waiting for some other trigger.
 
-> **Open question OQ-PH-05 (§9):** if Phase 1 is entirely free, is mandatory login still
-> wanted? It is friction ahead of any paid value. This is a product decision, not a technical
-> one, and the answer changes FR-PH-04.
+> **Deliberate product risks, accepted:**
+> - **No trial.** A user is asked to pay having seen nothing but the login screen. This is the
+>   weakest conversion position, and OQ-PH-01 tracks whether it holds up in the field.
+> - **Offline first run.** Registering requires a network, so a first-run user with no data
+>   cannot enter at all. After one successful check, FR-S-15's 24h TTL + 7 day grace carries a
+>   subscriber for up to 31 days offline.
+> - **BDApps store only.** Google Play requires Play Billing for digital goods, so carrier
+>   billing for app access is not Play-safe. Publishing to Play later requires FR-MG-07.
+
+**FR-MG-07 — Play Store variant (deferred)**
+Should Amol365 be published on Google Play, the mandatory carrier-billing gate SHALL be replaced
+by Play Billing or the app SHALL ship without a paywall on that channel. This is a distribution
+blocker, not a preference.
 
 ---
 
@@ -236,10 +249,10 @@ This document supersedes the following where they conflict.
 
 | Document | Location | Amendment |
 |---|---|---|
-| `SRS-Backend-Auth-Subscription.md` | §7.6 premium table | "Hadith of the day" and "Surah collection" are both **Phase 2**. Phase 1 has no premium tier. |
-| `SRS-Backend-Auth-Subscription.md` | §7, FR-S-* | The subscription gate is disabled for Phase 1 (FR-PH-01). The flow remains implemented and tested. |
+| `SRS-Backend-Auth-Subscription.md` | §7.6 premium table | Superseded. Premium is no longer a content tier: the WHOLE app requires a subscription (FR-MG-01). Hadith and Surah remain Phase 2 regardless. |
+| `SRS-Backend-Auth-Subscription.md` | §8, FR-G-01/FR-G-02 | Superseded. The gate is MANDATORY and sits AFTER login, not before it. FR-S-08 (soft gate) and FR-S-09 (three-prompt cap) no longer apply. |
 | `SRS-Backend-Auth-Subscription.md` | §9, FR-C-01 | The Phase 1 bundled baseline is `cities.json` and `names_of_allah.json` only. |
-| `SRS-Backend-Auth-Subscription.md` | §15.1 sequencing note | Superseded. The premium tier is not thin, it is absent by design until Phase 2. |
+| `SRS-Backend-Auth-Subscription.md` | §15.1 sequencing note | Superseded. The tier does not depend on content landing, so M-5 no longer races Release 3.2. |
 | `SRS-Backend-Auth-Subscription.md` | §15 release plan | Add: Phase 2 enables the Hadith and Surah flags; no APK release required if Remote Config carries them. |
 | `FEATURES.md` | Feature list, monetisation | Mark hadith and surah features Phase 2. Remove the Phase 1 premium comparison entirely. |
 
@@ -257,9 +270,15 @@ This document supersedes the following where they conflict.
 | AC-PH-06 | `flutter analyze` is clean and the full suite passes with the flags both off and on. |
 | AC-PH-07 | No Phase 1 user-facing string mentions hadith or surah. |
 | AC-PH-08 | A Phase 1 client ignores the `hadiths`, `surahs` and `surahsFull` manifest keys and downloads none of them. |
-| AC-PH-09 | The subscription gate is disabled, and no premium badge, settings row or gate prompt appears anywhere in Phase 1. |
-| AC-PH-10 | The `tahajjud` amal item is completable by every Phase 1 user. |
-| AC-PH-11 | A Phase 1 build with Firebase entirely unreachable still hides both features and still shows no paywall. |
+| AC-PH-09 | An authenticated user without entitlement cannot reach any feature; every route lands on the gate. |
+| AC-PH-10 | The gate has no dismiss control and the system back gesture does not bypass it. |
+| AC-PH-11 | A gated user can sign out from the gate and reach the login screen. |
+| AC-PH-12 | Subscribing dismisses the gate immediately, with no relaunch. |
+| AC-PH-13 | A subscriber whose entitlement is stale but inside the grace window is NOT gated (FR-S-15). |
+| AC-PH-14 | Setting `subscription_gate_enabled` false releases every user without an app update (FR-MG-05). |
+| AC-PH-15 | Losing entitlement cancels pending azan notifications; regaining it reschedules them (FR-MG-06). |
+| AC-PH-16 | Amal history, tasbeeh counts and streaks survive a lapse and a re-subscribe (FR-MG-04). |
+| AC-PH-17 | A Phase 1 build with Firebase entirely unreachable still hides Hadith and Surah and still enforces the paywall. |
 
 ---
 
@@ -267,9 +286,10 @@ This document supersedes the following where they conflict.
 
 | ID | Question | Owner |
 |---|---|---|
-| OQ-PH-01 | Phase 1 now earns nothing. Is that accepted for a first release building an audience, or is a Phase 1 revenue path wanted (e.g. ads, per FR-OQ-04 in the backend SRS)? | Product owner |
+| OQ-PH-01 | No trial: users are asked to pay having seen only the login screen. Measure install → subscribe conversion early; if it is poor, a trial or a free tier is the first lever. | Product owner |
 | OQ-PH-02 | Which hadith collection and grading standard will be used? Needed before Phase 2 work begins. | Product owner |
 | OQ-PH-03 | Which Quran source for `surahs_full.json` — Tanzil, King Fahd Complex, or another? Needed before Phase 2. | Product owner |
 | OQ-PH-04 | Does Phase 2 have a target date, or is it content-ready-driven? Affects whether Remote Config enablement suffices or a full release is planned. | Product owner |
-| OQ-PH-05 | With Phase 1 entirely free, is mandatory login (FR-G-03) still wanted? It is friction ahead of any paid value, and the strongest argument for it — attaching entitlement — does not apply until Phase 2. | Product owner |
-| OQ-PH-06 | Does hiding Surah leave Phase 1 with enough to justify a release? Remaining: prayer times, azan, qibla, amal tracker, tasbeeh, 99 Names, calendar, Ramadan. | Product owner |
+| OQ-PH-05 | A first-run user with no data connection cannot register and therefore cannot enter at all. Acceptable for a carrier-distributed app, or is an offline-tolerant path needed? | Product owner |
+| OQ-PH-06 | Is the Phase 1 feature set worth 5 BDT/week to a user who has seen none of it? Remaining: prayer times, azan, qibla, amal tracker, tasbeeh, 99 Names, calendar, Ramadan. | Product owner |
+| OQ-PH-07 | Existing Phase 1 installs, if any ship before the paywall: an update that locks them out is hostile. Grandfather them, or is this pre-launch only? | Product owner |

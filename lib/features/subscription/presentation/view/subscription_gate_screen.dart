@@ -11,15 +11,21 @@ import '../viewmodel/subscription_viewmodel.dart';
 
 /// The subscription gate (M-3/M-4).
 ///
-/// FR-S-08 — SOFT gate. The ✕ in the top-right dismisses it and the user
-/// continues to the app as a free user. The Android back gesture does the same.
-/// No confirmation, no penalty.
+/// Two modes, decided by the caller:
+///
+///  - **Mandatory** (`canDismiss: false`) — the startup gate under FR-G-06.
+///    The whole app is the paid product, so there is nothing to dismiss to.
+///    The ✕ is replaced by [onSignOut], which is the only way out: a user who
+///    cannot or will not pay must never be trapped with no exit.
+///  - **Dismissible** (`canDismiss: true`) — a manual visit from inside the
+///    app. The ✕ and the back gesture both close it, no penalty (FR-S-08).
 class SubscriptionGateScreen extends ConsumerStatefulWidget {
   const SubscriptionGateScreen({
     super.key,
     required this.onDone,
     this.canDismiss = true,
     this.isAutomaticPrompt = true,
+    this.onSignOut,
   });
 
   /// Called on both dismissal and success — the caller decides where to go, so
@@ -27,6 +33,9 @@ class SubscriptionGateScreen extends ConsumerStatefulWidget {
   final void Function({required bool subscribed}) onDone;
 
   final bool canDismiss;
+
+  /// Escape hatch for the mandatory gate. Null when [canDismiss] is true.
+  final Future<void> Function()? onSignOut;
 
   /// FR-S-09 — only an automatic startup display counts toward the 3-prompt
   /// limit. A user who opens this deliberately from Settings should not burn
@@ -74,6 +83,38 @@ class _SubscriptionGateScreenState extends ConsumerState<SubscriptionGateScreen>
     widget.onDone(subscribed: false);
   }
 
+  /// Leaving a mandatory gate means ending the session, so it is confirmed —
+  /// an accidental tap here would drop a user who was mid-subscribe back to
+  /// the login screen.
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final signOut = widget.onSignOut;
+    if (signOut == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('লগআউট'),
+        content: const Text(
+          'সাবস্ক্রিপশন ছাড়া অ্যাপ ব্যবহার করা যাবে না।\n\n'
+          'আপনি কি লগআউট করতে চান? আপনার আমল ও তাসবিহ এই ডিভাইসেই থাকবে।',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('থাক'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text('লগআউট', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    await signOut();
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(subscriptionProvider);
@@ -104,6 +145,9 @@ class _SubscriptionGateScreenState extends ConsumerState<SubscriptionGateScreen>
                 canDismiss: widget.canDismiss,
                 onBack: () => ref.read(subscriptionProvider.notifier).backToPhone(),
                 onDismiss: _dismiss,
+                onSignOut: widget.onSignOut == null
+                    ? null
+                    : () => _confirmSignOut(context),
               ),
               Expanded(
                 child: SingleChildScrollView(
@@ -306,12 +350,16 @@ class _TopBar extends StatelessWidget {
     required this.canDismiss,
     required this.onBack,
     required this.onDismiss,
+    this.onSignOut,
   });
 
   final bool showBack;
   final bool canDismiss;
   final VoidCallback onBack;
   final VoidCallback onDismiss;
+
+  /// Shown instead of the ✕ on a mandatory gate.
+  final VoidCallback? onSignOut;
 
   @override
   Widget build(BuildContext context) {
@@ -333,6 +381,16 @@ class _TopBar extends StatelessWidget {
               iconSize: 26.sp,
               onPressed: onDismiss,
               tooltip: 'বন্ধ করুন',
+            )
+          // FR-G-06 — no ✕ on a mandatory gate, but never a dead end either.
+          else if (onSignOut != null)
+            TextButton(
+              onPressed: onSignOut,
+              child: Text(
+                'লগআউট',
+                style: TextStyle(
+                    fontSize: 13.sp, color: AppColors.textSecondary),
+              ),
             ),
         ],
       ),

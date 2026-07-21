@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:amol365/app/config/feature_flags.dart';
 import 'package:amol365/app/services/storage_service.dart';
 import 'package:amol365/features/subscription/domain/entitlement.dart';
 import 'package:amol365/features/subscription/presentation/viewmodel/subscription_viewmodel.dart';
@@ -165,22 +166,59 @@ void main() {
     });
   });
 
-  group('gate policy (FR-S-09)', () {
-    test('premium users are never prompted', () {
-      const premium = Entitlement(tier: Tier.premium);
-      // shouldShow reads SharedPreferences via StorageService, which is not
-      // initialised in a plain unit test; the premium short-circuit is checked
-      // before any storage access, so this is safe and is the branch that
-      // matters most — a paying user must never see the gate again.
-      expect(SubscriptionGatePolicy.shouldShow(premium), isFalse);
+  group('mandatory gate (FR-G-06)', () {
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      await StorageService.instance.init();
     });
 
-    test('the automatic prompt limit is 3', () {
-      expect(SubscriptionGatePolicy.maxAutomaticPrompts, 3);
+    test('an unsubscribed user is gated', () {
+      expect(
+        FeatureFlags.phase1.requiresSubscription(isPremium: false),
+        isTrue,
+        reason: 'the whole app is the paid product',
+      );
+    });
+
+    test('a subscriber is never gated', () {
+      expect(
+        FeatureFlags.phase1.requiresSubscription(isPremium: true),
+        isFalse,
+      );
+    });
+
+    test('there is no prompt cap — the gate does not stop appearing', () async {
+      // FR-S-09's three-prompt limit is gone. Showing the gate ten times and
+      // still gating proves the cap cannot strand a user in a blank app.
+      for (var i = 0; i < 10; i++) {
+        await SubscriptionGatePolicy.recordShown();
+      }
+
+      expect(FeatureFlags.phase1.requiresSubscription(isPremium: false), isTrue);
+    });
+
+    test('the kill switch releases everyone', () {
+      // FR-P-07 — the only protection if BDApps billing fails: without it a
+      // carrier outage locks every user out of an app they cannot buy.
+      const killed = FeatureFlags(
+        hadithEnabled: false,
+        surahEnabled: false,
+        subscriptionEnabled: false,
+      );
+
+      expect(killed.requiresSubscription(isPremium: false), isFalse);
+    });
+
+    test('a stale cached subscriber is not gated', () {
+      // FR-S-15 — an offline subscriber inside the 7-day grace keeps access.
+      // Gating them would lock a paying user out over a lost network.
+      const stale = Entitlement(tier: Tier.premium, isStale: true);
+
+      expect(FeatureFlags.phase1.requiresSubscription(isPremium: stale.isPremium), isFalse);
     });
   });
 
-  group('gate resets on logout', () {
+  group('gate telemetry counters', () {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       await StorageService.instance.init();
@@ -189,71 +227,32 @@ void main() {
     int promptCount() =>
         StorageService.instance.getInt(StorageKeys.subGatePromptCount);
 
-    test('silence exhausts the allowance', () async {
-      await SubscriptionGatePolicy.silence();
+    test('recordShown increments the counter', () async {
+      await SubscriptionGatePolicy.recordShown();
+      await SubscriptionGatePolicy.recordShown();
 
-      expect(promptCount(), SubscriptionGatePolicy.maxAutomaticPrompts);
+      expect(promptCount(), 2);
     });
 
-    test('reset restores the full allowance', () async {
-      await SubscriptionGatePolicy.silence();
-      expect(promptCount(), SubscriptionGatePolicy.maxAutomaticPrompts);
-
-      await SubscriptionGatePolicy.reset();
-
-      // A logout begins a new session, often a different person on a shared
-      // phone; they must not inherit the previous user's exhausted counter.
-      expect(promptCount(), 0);
-    });
-
-    test('reset also clears the dismissal stamp', () async {
+    test('reset clears the counter and the dismissal stamp', () async {
       await SubscriptionGatePolicy.recordShown();
       await SubscriptionGatePolicy.recordDismissed();
 
       await SubscriptionGatePolicy.reset();
 
+      // Cleared on logout so the next account's funnel is measured from zero
+      // rather than inheriting the previous user's tally on a shared phone.
       expect(promptCount(), 0);
-      expect(
-        StorageService.instance.getInt(StorageKeys.subGateDismissedAt),
-        0,
-        reason: 'a stale dismissal must not suppress the fresh allowance',
-      );
+      expect(StorageService.instance.getInt(StorageKeys.subGateDismissedAt), 0);
     });
 
-    test('a restored allowance spans three prompts before exhausting',
-        () async {
-      await SubscriptionGatePolicy.silence();
-      await SubscriptionGatePolicy.reset();
-
-      for (var i = 0; i < SubscriptionGatePolicy.maxAutomaticPrompts; i++) {
-        expect(promptCount(),
-            lessThan(SubscriptionGatePolicy.maxAutomaticPrompts),
-            reason: 'prompt ${i + 1} should still be available');
+    test('the counter never affects whether the gate appears', () async {
+      for (var i = 0; i < 25; i++) {
         await SubscriptionGatePolicy.recordShown();
       }
 
-      expect(promptCount(), SubscriptionGatePolicy.maxAutomaticPrompts);
-    });
-
-    test('a subscriber is never prompted, reset or not', () async {
-      await SubscriptionGatePolicy.reset();
-
-      // Restoring the counter must not resurrect the gate for someone who is
-      // already paying.
-      expect(
-        SubscriptionGatePolicy.shouldShow(const Entitlement(tier: Tier.premium)),
-        isFalse,
-      );
-    });
-
-    test('the Phase 1 kill switch outranks a restored allowance', () async {
-      await SubscriptionGatePolicy.reset();
-
-      // FR-PH-01 — `subscription_gate_enabled` defaults to false, so a fresh
-      // allowance cannot bring the gate back while Phase 1 sells nothing.
-      // These tests therefore assert the counter rather than shouldShow: the
-      // reset is real, but inert until Phase 2 raises the flag.
-      expect(SubscriptionGatePolicy.shouldShow(Entitlement.free), isFalse);
+      // Telemetry only. Gating follows from entitlement alone (FR-G-06).
+      expect(FeatureFlags.phase1.requiresSubscription(isPremium: false), isTrue);
     });
   });
 }

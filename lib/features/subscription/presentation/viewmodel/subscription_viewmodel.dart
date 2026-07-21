@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/di/providers.dart';
 import '../../../../app/network/api_exception.dart';
-import '../../../../app/services/remote_config_service.dart';
 import '../../../../app/services/storage_service.dart';
 import '../../../../app/services/telemetry_service.dart';
 import '../../domain/entitlement.dart';
@@ -48,35 +47,18 @@ class EntitlementNotifier extends Notifier<Entitlement> {
 
 // ---------------------------------------------------------------- gate policy
 
-/// FR-S-09 — the gate is shown automatically on at most the first three
-/// launches, then never again on its own.
+/// Telemetry for the gate.
 ///
-/// A daily-use prayer app that nags on every launch gets uninstalled. The
-/// trade is that conversion then depends entirely on the re-entry points in
-/// FR-S-10 (Settings row, locked features) — without those, revenue dies.
+/// FR-S-09's three-prompt cap is GONE. It existed for a soft gate, where the
+/// risk was nagging a user who could keep using the app anyway; under FR-G-06
+/// the whole app is the paid product, so an unsubscribed user sees the gate
+/// every time by definition and a cap would only mean showing them a blank
+/// wall instead.
+///
+/// Whether the gate appears is now decided in one place — the router redirect
+/// — from entitlement and the FR-P-07 kill switch. What remains here is the
+/// counting, which still makes the funnel readable.
 abstract class SubscriptionGatePolicy {
-  static const maxAutomaticPrompts = 3;
-
-  /// Remote Config may lower or raise the limit without an app release
-  /// (FR-P-07); the local constant is the default if Firebase is unavailable.
-  static int get _limit {
-    final remote = RemoteConfigService.instance.getInt(Flags.subscriptionGateMaxPrompts);
-    return remote > 0 ? remote : maxAutomaticPrompts;
-  }
-
-  static bool shouldShow(Entitlement entitlement) {
-    if (entitlement.isPremium) return false;
-
-    // FR-P-07 kill switch — lets the gate be turned off entirely (a BDApps
-    // outage, suspended billing) without shipping a new APK.
-    if (!RemoteConfigService.instance.getBool(Flags.subscriptionGateEnabled)) {
-      return false;
-    }
-
-    final shown = StorageService.instance.getInt(StorageKeys.subGatePromptCount);
-    return shown < _limit;
-  }
-
   static Future<void> recordShown() async {
     final shown = StorageService.instance.getInt(StorageKeys.subGatePromptCount);
     await StorageService.instance.setInt(StorageKeys.subGatePromptCount, shown + 1);
@@ -94,19 +76,12 @@ abstract class SubscriptionGatePolicy {
         .logEvent(AnalyticsEvents.gateDismissed, {'promptNumber': shown});
   }
 
-  /// Stop automatic prompting for good — used after a successful subscribe.
-  static Future<void> silence() async {
-    await StorageService.instance
-        .setInt(StorageKeys.subGatePromptCount, maxAutomaticPrompts);
-  }
-
-  /// Start the FR-S-09 allowance over. Called on logout.
+  /// Clear the counters when a session ends, so the next account's funnel is
+  /// measured from zero rather than inheriting the previous user's tally on a
+  /// shared phone.
   ///
-  /// The prompt cap exists so the gate cannot nag a user into uninstalling,
-  /// and that reasoning holds within one session — but a logout is a
-  /// deliberate act that begins a new one, often a different person on a
-  /// shared phone. Carrying an exhausted counter across it would mean the next
-  /// user is never offered the subscription at all.
+  /// This no longer affects whether the gate appears — that follows from
+  /// entitlement alone — only what the numbers mean.
   static Future<void> reset() async {
     await StorageService.instance.setInt(StorageKeys.subGatePromptCount, 0);
     await StorageService.instance.remove(StorageKeys.subGateDismissedAt);
@@ -195,8 +170,9 @@ class SubscriptionNotifier extends Notifier<SubscriptionState> {
       final entitlement = await _repository.checkStatus(msisdn);
 
       if (entitlement.isPremium) {
+        // Setting entitlement is what closes the gate: the router redirect
+        // reads it directly, so no counter needs silencing.
         ref.read(entitlementProvider.notifier).set(entitlement);
-        await SubscriptionGatePolicy.silence();
         // FR-S-19 — an existing web subscriber landing here with no OTP and
         // no second charge. Worth measuring separately from a new subscribe.
         await TelemetryService.instance.logEvent(AnalyticsEvents.alreadySubscribed);
@@ -236,7 +212,6 @@ class SubscriptionNotifier extends Notifier<SubscriptionState> {
         otp: otp,
       );
       ref.read(entitlementProvider.notifier).set(entitlement);
-      await SubscriptionGatePolicy.silence();
       await TelemetryService.instance.logEvent(AnalyticsEvents.subscribed);
       await TelemetryService.instance.setPremium(true);
       state = state.copyWith(step: GateStep.success, isBusy: false);

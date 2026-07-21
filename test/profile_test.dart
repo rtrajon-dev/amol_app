@@ -78,24 +78,10 @@ void main() {
     });
   });
 
-  group('subscription is for subscribers only', () {
-    testWidgets('a free user sees no subscription section at all',
-        (tester) async {
-      await pumpProfile(tester, flags: FeatureFlags.phase1);
-
-      expect(find.text('সাবস্ক্রিপশন'), findsNothing);
-      expect(find.text('স্ট্যাটাস চেক করুন'), findsNothing);
-      expect(find.text('আনসাবস্ক্রাইব'), findsNothing);
-    });
-
-    testWidgets('a free user is never asked for a phone number',
-        (tester) async {
-      await pumpProfile(tester, flags: FeatureFlags.phase1);
-
-      // Entitlement arrives from /auth/me on launch (FR-S-21), so there is
-      // nothing for the user to type.
-      expect(find.byType(TextField), findsNothing);
-    });
+  group('subscription section', () {
+    // Under FR-G-06 an unsubscribed user never reaches Profile at all — the
+    // router holds them on the gate. These pump the widget directly, so they
+    // describe what it renders for a given entitlement, not a reachable state.
 
     testWidgets('a subscriber sees status and unsubscribe', (tester) async {
       await pumpProfile(
@@ -109,7 +95,7 @@ void main() {
       expect(find.text('আনসাবস্ক্রাইব'), findsOneWidget);
     });
 
-    testWidgets('a subscriber can cancel even in a phase that sells nothing',
+    testWidgets('a subscriber is never asked for a phone number',
         (tester) async {
       await pumpProfile(
         tester,
@@ -117,8 +103,8 @@ void main() {
         entitlement: premium,
       );
 
-      // Someone being charged must always have a way to stop it.
-      expect(find.text('আনসাবস্ক্রাইব'), findsOneWidget);
+      // Entitlement arrives from /auth/me on launch (FR-S-21).
+      expect(find.byType(TextField), findsNothing);
     });
 
     testWidgets('warns that cancelling also ends web access', (tester) async {
@@ -132,9 +118,27 @@ void main() {
       expect(find.textContaining('ওয়েবসাইটেও'), findsOneWidget);
     });
 
-    testWidgets('shows no upgrade offer in Phase 1', (tester) async {
+    testWidgets('a lapsed user is offered the subscription, not unsubscribe',
+        (tester) async {
       await pumpProfile(tester, flags: FeatureFlags.phase1);
 
+      expect(find.text('প্রিমিয়াম সাবস্ক্রিপশন'), findsOneWidget);
+      expect(find.text('আনসাবস্ক্রাইব'), findsNothing);
+    });
+
+    testWidgets('the kill switch hides the section entirely', (tester) async {
+      // FR-P-07 — with billing disabled there is nothing to sell and nothing
+      // to manage, so the section must not advertise a dead flow.
+      await pumpProfile(
+        tester,
+        flags: const FeatureFlags(
+          hadithEnabled: false,
+          surahEnabled: false,
+          subscriptionEnabled: false,
+        ),
+      );
+
+      expect(find.text('সাবস্ক্রিপশন'), findsNothing);
       expect(find.text('প্রিমিয়াম সাবস্ক্রিপশন'), findsNothing);
     });
   });

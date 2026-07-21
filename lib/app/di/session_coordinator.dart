@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/presentation/viewmodel/auth_viewmodel.dart';
+import '../../features/prayer_time/presentation/viewmodel/prayer_time_viewmodel.dart';
 import '../../features/subscription/presentation/viewmodel/subscription_viewmodel.dart';
+import '../services/notification_service.dart';
 
 /// Cross-module coordination between auth (M-2) and subscription (M-3).
 ///
@@ -32,6 +34,25 @@ final sessionCoordinatorProvider = Provider<void>((ref) {
     final signedIn = !(previous?.isAuthenticated ?? false) && next.isAuthenticated;
     if (signedIn) {
       ref.read(entitlementProvider.notifier).unawaitedRevalidate();
+    }
+  });
+
+  // FR-G-06 — the whole app is the paid product, azan included. Pending alarms
+  // outlive the app process, so losing entitlement has to actively cancel them;
+  // otherwise a lapsed user keeps receiving the paid feature indefinitely and
+  // the only enforcement is a screen they never open.
+  //
+  // The reverse matters just as much: alarms are rescheduled the moment a
+  // subscription lands, so a new subscriber does not silently miss prayers
+  // until something else happens to trigger a reschedule.
+  ref.listen(entitlementProvider, (previous, next) {
+    final was = previous?.isPremium ?? false;
+    if (was == next.isPremium) return;
+
+    if (next.isPremium) {
+      ref.read(azanSchedulerProvider).rescheduleAll();
+    } else {
+      NotificationService.instance.cancelAzan();
     }
   });
 });

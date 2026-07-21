@@ -641,8 +641,9 @@ lib/features/subscription/          ← M-7 deletes this entire directory
 
 Per `FEATURES.md`. Restated here as the authoritative gating list:
 
-**This table describes Phase 2 and later. Phase 1 has no premium tier** — see
-`docs/SRS-Release-Phasing.md` §4 and FR-PH-01.
+**Superseded by FR-G-06.** Premium is no longer a content tier: the WHOLE app requires a
+subscription (`docs/SRS-Release-Phasing.md` §4). The table below records which features exist in
+which phase; it no longer describes a free/paid split, because there is no free tier.
 
 | Feature | Free | Premium | Phase |
 |---|---|---|---|
@@ -656,10 +657,8 @@ Per `FEATURES.md`. Restated here as the authoritative gating list:
 | Audio recitation | — | ✅ (deferred, §12.3) | — |
 | Ads | shown | removed | — |
 
-Both content features that carried the premium proposition — Hadith and Surah — are withheld
-from Phase 1. Nothing sellable remains, so Phase 1 ships with the subscription gate disabled
-(FR-PH-01) and no visible premium surface at all (FR-PH-02). The implementation stays in the
-tree and is enabled by flag in Phase 2 (FR-PH-03).
+Hadith and Surah remain withheld from Phase 1 because their content is not ready — but that no
+longer empties the tier, since the subscription now buys the app rather than those features.
 
 ### 7.7 Shared subscriber base (web + mobile)
 
@@ -757,18 +756,36 @@ Splash
 
 ### 8.3 Functional Requirements
 
-**FR-G-01 — Order**
-The subscription gate SHALL precede authentication. Both SHALL precede Home.
+**FR-G-01 — Order** *(superseded by FR-G-06)*
+~~The subscription gate SHALL precede authentication.~~ The gate now FOLLOWS authentication:
+Splash → Onboarding → Login/Register → Subscription → Home. A user must have an account before
+subscribing so entitlement always has one to bind to (FR-S-12).
 
-**FR-G-02 — Gate is soft**
-Subscription is optional in every path (FR-S-08).
+**FR-G-02 — Gate is soft** *(superseded by FR-G-06)*
+~~Subscription is optional in every path.~~ It is mandatory.
+
+**FR-G-06 — Mandatory subscription**
+The whole app is the paid product (`docs/SRS-Release-Phasing.md` §4). An authenticated user
+without entitlement SHALL NOT reach any feature, and the gate SHALL offer no dismiss control —
+the ✕ of FR-S-08 is replaced by sign-out, so a user who will not pay can leave rather than be
+trapped.
+
+Consequences that fall out of this and are specified in the phasing document:
+
+- FR-S-08 (soft gate) and FR-S-09 (three-prompt cap) NO LONGER APPLY. A cap on a mandatory gate
+  would only mean showing a user a blank wall instead of the purchase screen.
+- Whether the gate appears follows from entitlement and the FR-P-07 kill switch alone, decided
+  in the router redirect. `SubscriptionGatePolicy` retains only telemetry counters.
+- FR-S-15's grace window becomes load-bearing: a stale-but-premium subscriber SHALL pass the
+  gate, or a lost network would lock a paying user out of prayer times.
+- Losing entitlement SHALL cancel scheduled azan notifications (FR-MG-06).
 
 **FR-G-03 — Authentication requirement**
 Login SHALL be required to reach Home on first use. Thereafter a persisted session SHALL satisfy it (FR-A-05), including offline (FR-A-06).
 
 **FR-G-04 — Skip conditions**
 - Onboarding SHALL be shown once (`StorageKeys.onboardingDone`, existing).
-- The gate SHALL be skipped entirely when entitlement is already `premium`, or when the prompt count has reached 3 (FR-S-09).
+- The gate SHALL be skipped when entitlement is `premium` (including stale-but-in-grace), or when `subscription_gate_enabled` is false. The FR-S-09 prompt count no longer participates.
 - Login SHALL be skipped when a valid session exists.
 - A returning premium user with a session SHALL therefore go Splash → Home.
 

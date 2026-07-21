@@ -18,14 +18,13 @@ class RemoteConfigService {
   bool get _ready => FirebaseService.instance.isAvailable && _config != null;
 
   static const _defaults = <String, dynamic>{
-    // FR-PH-01 — FALSE for Phase 1. Both features that carried premium value
-    // (Hadith, Surah) are withheld, so there is nothing for the gate to sell
-    // and charging for it would be a refund liability. Raised to true in
-    // Phase 2, from the console, once the content exists.
+    // FR-G-06 — the whole app is the paid product, so the gate ships ON.
     //
-    // Also still the FR-P-07 kill switch: it turns the gate off during a
-    // BDApps outage or suspended billing without shipping an APK.
-    Flags.subscriptionGateEnabled: false,
+    // Also the FR-P-07 kill switch, and that role is now critical rather than
+    // convenient: under a MANDATORY gate, a BDApps outage would lock every
+    // user out of an app they cannot buy. Setting this to false from the
+    // console releases everyone without an APK.
+    Flags.subscriptionGateEnabled: true,
 
     // Lets the automatic prompt count be tuned from the console once real
     // conversion data exists, without shipping a new APK.

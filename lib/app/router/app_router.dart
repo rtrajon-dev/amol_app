@@ -78,12 +78,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return path == AppRoutes.onboarding ? null : AppRoutes.onboarding;
       }
       if (path == AppRoutes.onboarding) {
-        // Phase 1 has no gate to show, so onboarding leads straight on
-        // (FR-PH-02) rather than bouncing off a withheld route.
-        if (!flags.subscriptionEnabled) {
-          return auth.isAuthenticated ? AppRoutes.home : AppRoutes.login;
-        }
-        return AppRoutes.subscription;
+        // Onboarding leads to login; the gate now sits behind it (step 5).
+        return auth.isAuthenticated ? AppRoutes.home : AppRoutes.login;
       }
 
       // 3. FR-PH-07 — routes belonging to a withheld feature refuse to render.
@@ -98,38 +94,37 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return auth.isAuthenticated ? AppRoutes.home : AppRoutes.login;
       }
 
-      // 4. Subscription gate (FR-G-01, FR-G-02) — OPTIONAL. It precedes login,
-      //    and the ✕ dismisses it straight through to the next step. It is
-      //    shown automatically at most three times (FR-S-09); after that it is
-      //    reachable only from Settings or a locked feature (FR-S-10).
-      final entitlement = ref.read(entitlementProvider);
-      final gateIsDue = SubscriptionGatePolicy.shouldShow(entitlement);
-
-      if (path == AppRoutes.subscription) {
-        // FR-S-10 — a MANUAL entry (Settings row, locked feature) must always
-        // open, even after FR-S-09 has silenced the automatic prompt. Without
-        // this the only two remaining conversion paths would be dead.
-        final isManual = state.uri.queryParameters['manual'] == '1';
-        if (isManual) return null;
-
-        // Automatic entry: never trap the user here if it is no longer due.
-        if (!gateIsDue) {
-          return auth.isAuthenticated ? AppRoutes.home : AppRoutes.login;
-        }
-        return null;
-      }
-
-      if (gateIsDue && !auth.isAuthenticated && !authRoutes.contains(path)) {
-        return AppRoutes.subscription;
-      }
-
       // 4. Authentication (FR-G-03). A persisted session satisfies this, and
       //    the check is local, so an offline user is never blocked (FR-A-06).
       if (!auth.isAuthenticated) {
+        // The gate sits behind login now, so an unauthenticated visit to it is
+        // a stale back-stack entry rather than a step in the flow.
         return authRoutes.contains(path) ? null : AppRoutes.login;
       }
 
-      // 5. Authenticated users never sit on splash or an auth screen.
+      // 5. Subscription (FR-G-06) — MANDATORY, and after login rather than
+      //    before it. The whole app is the paid product, so an authenticated
+      //    user without entitlement has nothing to be let through to.
+      //
+      //    `subscriptionEnabled` remains the FR-P-07 kill switch and matters
+      //    more now than it did as a soft gate: if BDApps billing fails, this
+      //    is the only way to stop locking every user out of an app they
+      //    cannot buy.
+      final entitlement = ref.read(entitlementProvider);
+      final needsSubscription =
+          flags.requiresSubscription(isPremium: entitlement.isPremium);
+
+      if (path == AppRoutes.subscription) {
+        // Never strand a subscriber on the gate — including the moment their
+        // payment lands and entitlement flips.
+        return needsSubscription ? null : AppRoutes.home;
+      }
+
+      if (needsSubscription) {
+        return AppRoutes.subscription;
+      }
+
+      // 6. Subscribed users never sit on splash or an auth screen.
       if (path == AppRoutes.splash || authRoutes.contains(path)) {
         return AppRoutes.home;
       }
@@ -150,20 +145,29 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.subscription,
         builder: (context, state) {
           final isManual = state.uri.queryParameters['manual'] == '1';
+
+          // FR-G-06 — the startup gate is mandatory: the whole app is the paid
+          // product, so there is nowhere to dismiss to. Only a manual visit by
+          // someone already inside the app can be closed.
+          final canDismiss = isManual;
+
           return SubscriptionGateScreen(
             isAutomaticPrompt: !isManual,
+            canDismiss: canDismiss,
+            // The one way out of a mandatory gate. Without it a user who
+            // cannot or will not pay is trapped with no exit and no way to
+            // reach a different account.
+            onSignOut: canDismiss
+                ? null
+                : () => ref.read(authProvider.notifier).logout(),
             onDone: ({required bool subscribed}) {
-              // Opened manually from Settings or a locked feature: just go
-              // back where they came from.
               if (isManual && context.canPop()) {
                 context.pop();
                 return;
               }
-              // Startup gate: both dismiss and success converge, and the
-              // redirect decides the destination — one source of truth for
+              // The redirect decides the destination — one source of truth for
               // the sequence (FR-G-05).
-              final auth = ref.read(authProvider);
-              context.go(auth.isAuthenticated ? AppRoutes.home : AppRoutes.login);
+              context.go(AppRoutes.home);
             },
           );
         },
