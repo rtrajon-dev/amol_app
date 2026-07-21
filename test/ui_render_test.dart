@@ -222,28 +222,38 @@ void main() {
     testWidgets('theme and language are reachable from Home', (tester) async {
       await render(tester, const HomeScreen());
 
-      expect(find.byTooltip('থিম'), findsOneWidget);
+      expect(find.byTooltip('ডার্ক থিমে যান'), findsOneWidget);
       expect(find.byTooltip('ভাষা'), findsOneWidget);
     });
 
-    testWidgets('the theme icon reflects the rendered brightness',
+    testWidgets('the icon shows the theme the app is currently in',
         (tester) async {
-      // An icon claiming "light" while the screen is dark is worse than none.
       await render(tester, const HomeScreen(), brightness: Brightness.light);
       expect(find.byIcon(Icons.light_mode_rounded), findsOneWidget);
     });
 
-    testWidgets('opening the theme picker offers all three modes',
+    testWidgets('tapping toggles straight to dark, with no menu',
         (tester) async {
       await render(tester, const HomeScreen());
 
-      await tester.tap(find.byTooltip('থিম'));
+      await tester.tap(find.byTooltip('ডার্ক থিমে যান'));
       await tester.pumpAndSettle();
 
-      // system must stay reachable — a tap-to-cycle toggle would hide it.
-      expect(find.text('লাইট'), findsOneWidget);
-      expect(find.text('ডার্ক'), findsOneWidget);
-      expect(find.text('সিস্টেম অনুযায়ী'), findsOneWidget);
+      // A two-state toggle that opens a sheet costs two taps to do what one
+      // should, so there must be no picker here.
+      expect(find.text('সিস্টেম অনুযায়ী'), findsNothing);
+      expect(find.byTooltip('লাইট থিমে যান'), findsOneWidget);
+    });
+
+    testWidgets('tapping again returns to light', (tester) async {
+      await render(tester, const HomeScreen());
+
+      await tester.tap(find.byTooltip('ডার্ক থিমে যান'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('লাইট থিমে যান'));
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('ডার্ক থিমে যান'), findsOneWidget);
     });
   });
 

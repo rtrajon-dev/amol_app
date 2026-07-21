@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme/app_tokens.dart';
@@ -17,15 +18,24 @@ class HomeActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mode = ref.watch(themeModeProvider);
+    final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         _HeroIconButton(
-          icon: _iconFor(context, mode),
-          tooltip: 'থিম',
-          onTap: () => _pickTheme(context, ref, mode),
+          // Shows the state the app is IN, like a switch showing on or off,
+          // rather than the state a tap would produce. Both conventions exist;
+          // this one is the more common and does not require the user to
+          // reason backwards about what they are looking at.
+          icon: isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+          tooltip: isDark ? 'লাইট থিমে যান' : 'ডার্ক থিমে যান',
+          onTap: () {
+            // No confirmation and no sheet: a two-state toggle that opens a
+            // menu costs two taps to do what one should.
+            HapticFeedback.selectionClick();
+            ref.read(themeModeProvider.notifier).toggle();
+          },
         ),
         const SizedBox(width: Space.sm),
         _HeroIconButton(
@@ -35,42 +45,6 @@ class HomeActions extends ConsumerWidget {
         ),
       ],
     );
-  }
-
-  /// Reflects what the user is actually looking at, not the stored setting.
-  /// On `system` that means showing the resolved brightness — an icon claiming
-  /// "light" while the screen is dark would be worse than no icon.
-  IconData _iconFor(BuildContext context, ThemeMode mode) {
-    final isDark = switch (mode) {
-      ThemeMode.dark => true,
-      ThemeMode.light => false,
-      ThemeMode.system =>
-        MediaQuery.platformBrightnessOf(context) == Brightness.dark,
-    };
-    return isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded;
-  }
-
-  /// Opens the full picker rather than toggling. A tap-to-cycle would make
-  /// "follow the system" unreachable without three taps and no way to tell
-  /// which of the three you had landed on.
-  Future<void> _pickTheme(
-    BuildContext context,
-    WidgetRef ref,
-    ThemeMode current,
-  ) async {
-    final chosen = await showOptionPicker<ThemeMode>(
-      context: context,
-      title: 'থিম',
-      current: current,
-      options: [
-        for (final mode in ThemeMode.values)
-          PickerOption(value: mode, label: ThemeModeNotifier.labelFor(mode)),
-      ],
-    );
-
-    if (chosen != null) {
-      await ref.read(themeModeProvider.notifier).set(chosen);
-    }
   }
 
   /// Bangla only in this release (C-02).
@@ -122,7 +96,20 @@ class _HeroIconButton extends StatelessWidget {
             // missing.
             width: 40,
             height: 40,
-            child: Icon(icon, size: 19, color: Colors.white),
+            child: AnimatedSwitcher(
+              duration: Motion.fast,
+              // Cross-fade rather than a slide: the icon swaps in place, so
+              // the tap reads as the same control changing state instead of a
+              // different control arriving.
+              transitionBuilder: (child, animation) =>
+                  FadeTransition(opacity: animation, child: child),
+              child: Icon(
+                icon,
+                key: ValueKey(icon),
+                size: 19,
+                color: Colors.white,
+              ),
+            ),
           ),
         ),
       ),
