@@ -76,13 +76,17 @@ abstract class StorageKeys {
 
   static const selectedCity = 'selected_city';
   static const azanEnabled = 'azan_enabled';
-  /// The in-progress tasbeeh cycle — taps not yet forming a complete cycle.
+  /// In-progress tasbeeh cycles, as a JSON map of tasbeeh id to count.
   ///
-  /// Lives here rather than in SQLite because it changes on every tap; a row
-  /// write per tap would thrash the disk. Completed cycles go to
-  /// `tasbeeh_sessions`, and amal history and streak are derived from
-  /// `amal_logs` rather than stored as scalars.
-  static const tasbeehCount = 'tasbeeh_count';
+  /// Lives here rather than in SQLite because it changes on every tap, and a
+  /// row write per tap would thrash the disk. Completed cycles DO go to
+  /// `tasbeeh_sessions`, which has always been per-tasbeeh.
+  ///
+  /// Was a single int (`tasbeeh_count`) — one slot shared by five dhikr, so
+  /// counting 50 Subhanallah, switching to Alhamdulillah and switching back
+  /// showed zero. A new key rather than a reused one, so the old int cannot be
+  /// read back as a String.
+  static const tasbeehCounts = 'tasbeeh_counts';
   static const tasbeehSelectedId = 'tasbeeh_selected_id';
 
   // ---- Content sync (SRS-Backend §9, M-5) ----

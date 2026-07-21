@@ -15,6 +15,7 @@ import '../../../../app/theme/app_typography.dart';
 import '../../../../global_widgets/app_card.dart';
 import '../../../../features/amal_tracker/presentation/viewmodel/amal_tracker_viewmodel.dart';
 import '../../../../features/prayer_time/presentation/viewmodel/prayer_time_viewmodel.dart';
+import '../../../../app/utils/hijri_utils.dart';
 import '../../../../global_widgets/section_header.dart';
 import '../viewmodel/home_viewmodel.dart';
 import '../widgets/amal_summary_card.dart';
@@ -129,9 +130,12 @@ class _QuickAccessGrid extends ConsumerWidget {
 
   /// Everything not in the bottom nav has to be reachable from here.
   ///
-  /// নামাজের সময় is deliberately absent: it is a permanent tab, and a tile
-  /// duplicating it would spend a grid slot on a screen that is always one tap
-  /// away. তাসবিহ and রমজান moved here when the nav dropped to four.
+  /// Two columns rather than three: five destinations in a three-wide grid
+  /// leaves a ragged last row, and wider tiles give Bangla labels room to sit
+  /// on one line.
+  ///
+  /// নামাজের সময় is deliberately absent — it is a permanent tab, so a tile
+  /// would spend a slot on a screen that is always one tap away.
   static const _items = [
     _QuickItem(
       icon: Icons.explore_outlined,
@@ -146,12 +150,6 @@ class _QuickAccessGrid extends ConsumerWidget {
       color: AppColors.fajr,
     ),
     _QuickItem(
-      icon: Icons.nightlight_round,
-      label: 'রমজান',
-      route: AppRoutes.ramadan,
-      color: AppColors.accent500,
-    ),
-    _QuickItem(
       icon: Icons.calendar_month_outlined,
       label: 'ক্যালেন্ডার',
       route: AppRoutes.islamicCalendar,
@@ -163,6 +161,7 @@ class _QuickAccessGrid extends ConsumerWidget {
       route: AppRoutes.namesOfAllah,
       color: AppColors.maghrib,
     ),
+    // Phase 2. They join the grid automatically when their flags are raised.
     _QuickItem(
       icon: Icons.menu_book_outlined,
       label: 'হাদিস',
@@ -185,20 +184,117 @@ class _QuickAccessGrid extends ConsumerWidget {
     final visible =
         _items.where((i) => !flags.isRouteWithheld(i.route)).toList();
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.zero,
-      itemCount: visible.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: Space.md,
-        mainAxisSpacing: Space.md,
-        // Slightly taller than square: a Bangla label that wraps to two lines
-        // has room, so the tile never clips at large system font sizes.
-        childAspectRatio: 0.92,
+    return Column(
+      children: [
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          itemCount: visible.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: Space.md,
+            mainAxisSpacing: Space.md,
+            // Wide and short: a two-column tile has room for the icon and
+            // label side by side, so it does not need a square's height.
+            childAspectRatio: 2.1,
+          ),
+          itemBuilder: (_, i) => _QuickAccessTile(item: visible[i]),
+        ),
+        const SizedBox(height: Space.md),
+        // Ramadan sits alone, full width, flagged as seasonal. It is relevant
+        // about thirty days a year, and a tile that looks identical to the
+        // others implies it is useful today when usually it is not.
+        const _RamadanTile(),
+      ],
+    );
+  }
+}
+
+/// Full-width Ramadan entry, labelled by where the Hijri year actually is.
+class _RamadanTile extends StatelessWidget {
+  const _RamadanTile();
+
+  static const _ramadanMonth = 9;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isLight = theme.brightness == Brightness.light;
+    final hijri = HijriDate.now();
+    final isRamadan = hijri.month == _ramadanMonth;
+
+    return AppCard(
+      padding: const EdgeInsets.all(Space.lg),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        context.push(AppRoutes.ramadan);
+      },
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppColors.accent500
+                  .withValues(alpha: isLight ? 0.11 : 0.20),
+              borderRadius: Radii.mdAll,
+            ),
+            child: const Icon(
+              Icons.nightlight_round,
+              color: AppColors.accent500,
+              size: 21,
+            ),
+          ),
+          const SizedBox(width: Space.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'রমজান',
+                  style: AppType.h3.copyWith(color: theme.colorScheme.onSurface),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isRamadan
+                      ? 'সেহরি, ইফতার ও রমজানের আমল'
+                      : 'রমজান মাসে সক্রিয় হবে',
+                  style: AppType.bodySmall
+                      .copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: Space.sm),
+          _SeasonBadge(isActive: isRamadan),
+        ],
       ),
-      itemBuilder: (_, i) => _QuickAccessTile(item: visible[i]),
+    );
+  }
+}
+
+class _SeasonBadge extends StatelessWidget {
+  const _SeasonBadge({required this.isActive});
+
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isActive ? AppColors.success : AppColors.accent700;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: Space.sm, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: Radii.smAll,
+      ),
+      child: Text(
+        isActive ? 'চলছে' : 'মৌসুমি',
+        style: AppType.labelSmall.copyWith(color: color),
+      ),
     );
   }
 }
@@ -236,28 +332,26 @@ class _QuickAccessTile extends StatelessWidget {
         // and closed the app on the next back press.
         context.push(item.route);
       },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              // A tinted plate rather than a bare icon: it gives each tile a
-              // consistent optical weight regardless of how dense its glyph is.
+              // A tinted plate gives each tile the same optical weight
+              // regardless of how dense its glyph is.
               color: item.color.withValues(alpha: isLight ? 0.11 : 0.20),
               borderRadius: Radii.mdAll,
             ),
-            child: Icon(item.icon, color: item.color, size: 21),
+            child: Icon(item.icon, color: item.color, size: 20),
           ),
-          const SizedBox(height: Space.sm),
-          Flexible(
+          const SizedBox(width: Space.md),
+          Expanded(
             child: Text(
               item.label,
-              textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: AppType.labelSmall.copyWith(
+              style: AppType.label.copyWith(
                 color: theme.colorScheme.onSurface,
                 fontWeight: FontWeight.w600,
               ),
