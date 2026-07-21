@@ -80,7 +80,8 @@ class SurahScreen extends ConsumerWidget {
                       color: AppColors.primary,
                     ),
                   ),
-                  onTap: () => context.go('/surah/${surah.number}'),
+                  // push, not go: back must return to the list.
+                  onTap: () => context.push('/surah/${surah.number}'),
                 ),
               );
             },

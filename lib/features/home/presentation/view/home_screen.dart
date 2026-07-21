@@ -105,6 +105,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       completedCount: vm.completedAmalCount,
                       totalCount: vm.totalAmalCount,
                       streak: vm.streak,
+                      // go, not push: Amal is a TAB, so this switches branch
+                      // rather than stacking a second copy on top of Home.
                       onTap: () => context.go(AppRoutes.amalTracker),
                     ),
                     const SizedBox(height: Space.xxl),
@@ -229,7 +231,10 @@ class _QuickAccessTile extends StatelessWidget {
       padding: const EdgeInsets.all(Space.md),
       onTap: () {
         HapticFeedback.selectionClick();
-        context.go(item.route);
+        // push, not go: these are drill-downs within the Home branch, so back
+        // must return here. `go` replaces the stack, which left nothing to pop
+        // and closed the app on the next back press.
+        context.push(item.route);
       },
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

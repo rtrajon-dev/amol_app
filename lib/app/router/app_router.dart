@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -30,6 +30,14 @@ import '../services/storage_service.dart';
 import '../shell/main_shell.dart';
 import 'app_routes.dart';
 
+/// The root navigator, above the tab shell.
+///
+/// Routes that must cover the bottom nav have to name this explicitly.
+/// Declaring them as top-level siblings of the shell is NOT enough: pushed
+/// from inside a branch, go_router places them on that branch's navigator and
+/// the nav bar stays visible underneath.
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
+
 /// Bridges Riverpod state changes into something `GoRouter` will listen to.
 class _RouterRefresh extends ChangeNotifier {
   _RouterRefresh(Ref ref) {
@@ -48,6 +56,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   ref.onDispose(refresh.dispose);
 
   return GoRouter(
+    navigatorKey: _rootNavigatorKey,
     initialLocation: AppRoutes.splash,
     refreshListenable: refresh,
 
@@ -153,6 +162,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.subscription,
+        // FR-G-06 — a mandatory gate that leaves a bottom nav visible is not
+        // mandatory: the user simply taps another tab.
+        parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) {
           final isManual = state.uri.queryParameters['manual'] == '1';
 
@@ -195,80 +207,118 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.forgotPassword,
         builder: (_, _) => const ForgotPasswordScreen(),
       ),
-      ShellRoute(
-        builder: (context, state, child) => MainShell(child: child),
-        routes: [
-          GoRoute(
-            path: AppRoutes.home,
-            builder: (_, _) => const HomeScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.prayerTime,
-            builder: (_, _) => const PrayerTimeScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.azanSettings,
-            builder: (_, _) => const AzanSettingsScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.citySelector,
-            builder: (_, _) => const CitySelectorScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.tasbeeh,
-            builder: (_, _) => const TasbeehScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.amalTracker,
-            builder: (_, _) => const AmalTrackerScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.qibla,
-            builder: (_, _) => const QiblaScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.hadith,
-            builder: (_, _) => const HadithScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.islamicCalendar,
-            builder: (_, _) => const CalendarScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.namesOfAllah,
-            builder: (_, _) => const NamesScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.surah,
-            builder: (_, _) => const SurahScreen(),
+      // Configuration and modal flows live OUTSIDE the shell, full-screen with
+      // no bottom nav. These are tasks you complete and leave; a nav bar there
+      // invites abandoning a half-finished flow, and on the subscription gate
+      // it would let a user tab straight past a mandatory paywall.
+      GoRoute(
+        path: AppRoutes.azanSettings,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (_, _) => const AzanSettingsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.citySelector,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (_, _) => const CitySelectorScreen(),
+      ),
+      // Legacy. Settings was merged into Profile; kept as a redirect so an
+      // installed build's back-stack or a pre-merge deep link lands somewhere
+      // sensible instead of on a not-found page.
+      GoRoute(
+        path: AppRoutes.settings,
+        redirect: (_, _) => AppRoutes.profile,
+      ),
+
+      /// The tabbed shell.
+      ///
+      /// `StatefulShellRoute.indexedStack` rather than a plain `ShellRoute`:
+      /// each branch keeps its OWN navigation stack and state. Drill into the
+      /// calendar from Home, switch to Namaz, come back — the calendar is
+      /// still there, with its scroll position. A plain ShellRoute rebuilds
+      /// every switch and shares one stack, which is what made
+      /// `context.go` from the home grid destroy the back history and close
+      /// the app on the next back press.
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            MainShell(navigationShell: navigationShell),
+        branches: [
+          // ---------------------------------------------------------- home
+          //
+          // The grid destinations are SIBLINGS of Home inside the same branch,
+          // not children of it. go_router joins a child path onto its parent,
+          // and Home's path is '/', so a nested 'calendar' resolves to
+          // '//calendar' and never matches — the route silently does not
+          // exist. Flat routes in the branch, reached with `push`, stack onto
+          // Home correctly and give back somewhere to return to.
+          StatefulShellBranch(
             routes: [
               GoRoute(
-                path: ':id',
-                builder: (_, state) =>
-                    SurahDetailScreen(id: state.pathParameters['id']!),
+                path: AppRoutes.home,
+                builder: (_, _) => const HomeScreen(),
+              ),
+              GoRoute(
+                path: AppRoutes.islamicCalendar,
+                builder: (_, _) => const CalendarScreen(),
+              ),
+              GoRoute(
+                path: AppRoutes.qibla,
+                builder: (_, _) => const QiblaScreen(),
+              ),
+              GoRoute(
+                path: AppRoutes.tasbeeh,
+                builder: (_, _) => const TasbeehScreen(),
+              ),
+              GoRoute(
+                path: AppRoutes.ramadan,
+                builder: (_, _) => const RamadanScreen(),
+              ),
+              GoRoute(
+                path: AppRoutes.namesOfAllah,
+                builder: (_, _) => const NamesScreen(),
+              ),
+              GoRoute(
+                path: AppRoutes.hadith,
+                builder: (_, _) => const HadithScreen(),
+              ),
+              GoRoute(
+                path: AppRoutes.surah,
+                builder: (_, _) => const SurahScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    builder: (_, state) =>
+                        SurahDetailScreen(id: state.pathParameters['id']!),
+                  ),
+                ],
               ),
             ],
           ),
-          GoRoute(
-            path: AppRoutes.ramadan,
-            builder: (_, _) => const RamadanScreen(),
+          // --------------------------------------------------------- namaz
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.prayerTime,
+                builder: (_, _) => const PrayerTimeScreen(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: AppRoutes.profile,
-            builder: (_, _) => const ProfileScreen(),
+          // ---------------------------------------------------------- amal
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.amalTracker,
+                builder: (_, _) => const AmalTrackerScreen(),
+              ),
+            ],
           ),
-          // Settings was merged into Profile: roughly half of it duplicated
-          // that screen (account, email, logout, subscription status and
-          // cancel), and it had no entry point of its own — it was always
-          // reached THROUGH Profile.
-          //
-          // The route is kept as a redirect rather than deleted so an
-          // installed build's back-stack, or a notification deep link written
-          // before the merge, lands somewhere sensible instead of on a
-          // not-found page.
-          GoRoute(
-            path: AppRoutes.settings,
-            redirect: (_, _) => AppRoutes.profile,
+          // ------------------------------------------------------- profile
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.profile,
+                builder: (_, _) => const ProfileScreen(),
+              ),
+            ],
           ),
         ],
       ),
