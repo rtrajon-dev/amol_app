@@ -55,9 +55,22 @@ void main() {
     while (tester.takeException() != null) {}
   }
 
+  /// Profile absorbed Settings, so it now scrolls. ListView builds lazily, so
+  /// a row below the fold does not exist in the tree until scrolled to —
+  /// find.text would report it missing rather than off-screen.
+  Future<void> scrollTo(WidgetTester tester, Finder target) async {
+    await tester.scrollUntilVisible(
+      target,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+  }
+
   group('account', () {
     testWidgets('offers logout and account deletion', (tester) async {
       await pumpProfile(tester, flags: FeatureFlags.phase1);
+      await scrollTo(tester, find.text('অ্যাকাউন্ট মুছে ফেলুন'));
 
       expect(find.text('লগআউট'), findsOneWidget);
       expect(find.text('অ্যাকাউন্ট মুছে ফেলুন'), findsOneWidget);
@@ -65,16 +78,37 @@ void main() {
 
     testWidgets('says progress survives a logout', (tester) async {
       await pumpProfile(tester, flags: FeatureFlags.phase1);
+      await scrollTo(tester, find.text('লগআউট'));
 
       // FR-A-08 — users who fear losing a long streak will not log out.
       expect(find.textContaining('এই ডিভাইসেই থাকবে'), findsOneWidget);
     });
 
-    testWidgets('reaches Settings, which has no other entry point',
+    testWidgets('carries the prayer settings Settings used to hold',
         (tester) async {
       await pumpProfile(tester, flags: FeatureFlags.phase1);
 
-      expect(find.text('সেটিংস'), findsOneWidget);
+      // Settings was merged in; these rows have no other home.
+      expect(find.text('শহর নির্বাচন'), findsOneWidget);
+      expect(find.text('হিসাব পদ্ধতি'), findsOneWidget);
+      expect(find.text('আযান নোটিফিকেশন'), findsOneWidget);
+      expect(find.text('থিম'), findsOneWidget);
+    });
+
+    testWidgets('no longer links to a separate Settings screen',
+        (tester) async {
+      await pumpProfile(tester, flags: FeatureFlags.phase1);
+
+      expect(find.text('সেটিংস'), findsNothing);
+    });
+
+    testWidgets('hides the hadith row while the feature is withheld',
+        (tester) async {
+      await pumpProfile(tester, flags: FeatureFlags.phase1);
+
+      // FR-PH-09 — this row previously showed unconditionally, advertising a
+      // Phase 2 feature and leading to a route that redirects away.
+      expect(find.text('প্রতিদিনের হাদিস'), findsNothing);
     });
   });
 

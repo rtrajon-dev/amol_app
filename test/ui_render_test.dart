@@ -8,6 +8,7 @@ import 'package:amol365/app/theme/app_theme.dart';
 import 'package:amol365/features/amal_tracker/presentation/view/amal_tracker_screen.dart';
 import 'package:amol365/features/home/presentation/view/home_screen.dart';
 import 'package:amol365/features/prayer_time/presentation/viewmodel/prayer_time_viewmodel.dart';
+import 'package:amol365/features/profile/presentation/view/profile_screen.dart';
 import 'package:amol365/features/tasbeeh/presentation/view/tasbeeh_screen.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -115,6 +116,28 @@ void main() {
       await tester.pump();
       expectNoLayoutErrors(tester, 'TasbeehScreen');
     });
+
+    testWidgets('profile', (tester) async {
+      // The longest screen in the app since it absorbed Settings.
+      await render(tester, const ProfileScreen());
+      await tester.pump();
+      expectNoLayoutErrors(tester, 'ProfileScreen');
+    });
+
+    testWidgets('profile scrolls to the bottom without overflow',
+        (tester) async {
+      await render(tester, const ProfileScreen());
+      await tester.pump();
+
+      await tester.scrollUntilVisible(
+        find.text('অ্যাকাউন্ট মুছে ফেলুন'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pump();
+
+      expectNoLayoutErrors(tester, 'ProfileScreen scrolled');
+    });
   });
 
   group('renders without overflow — dark', () {
@@ -148,6 +171,12 @@ void main() {
       await render(tester, const TasbeehScreen(), size: small);
       await tester.pump();
       expectNoLayoutErrors(tester, 'TasbeehScreen at 320pt');
+    });
+
+    testWidgets('profile', (tester) async {
+      await render(tester, const ProfileScreen(), size: small);
+      await tester.pump();
+      expectNoLayoutErrors(tester, 'ProfileScreen at 320pt');
     });
   });
 

@@ -27,5 +27,6 @@ abstract class AppRoutes {
   static const surahDetail = '/surah/:id';
   static const ramadan = '/ramadan';
   static const profile = '/profile';
+  /// Legacy. Redirects to [profile], which absorbed Settings.
   static const settings = '/settings';
 }

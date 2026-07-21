@@ -19,7 +19,6 @@ import '../../features/prayer_time/presentation/view/prayer_time_screen.dart';
 import '../../features/profile/presentation/view/profile_screen.dart';
 import '../../features/qibla/presentation/view/qibla_screen.dart';
 import '../../features/ramadan/presentation/view/ramadan_screen.dart';
-import '../../features/settings/presentation/view/settings_screen.dart';
 import '../../features/subscription/presentation/view/subscription_gate_screen.dart';
 import '../../features/subscription/presentation/viewmodel/subscription_viewmodel.dart';
 import '../../features/surah/presentation/view/surah_detail_screen.dart';
@@ -258,9 +257,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.profile,
             builder: (_, _) => const ProfileScreen(),
           ),
+          // Settings was merged into Profile: roughly half of it duplicated
+          // that screen (account, email, logout, subscription status and
+          // cancel), and it had no entry point of its own — it was always
+          // reached THROUGH Profile.
+          //
+          // The route is kept as a redirect rather than deleted so an
+          // installed build's back-stack, or a notification deep link written
+          // before the merge, lands somewhere sensible instead of on a
+          // not-found page.
           GoRoute(
             path: AppRoutes.settings,
-            builder: (_, _) => const SettingsScreen(),
+            redirect: (_, _) => AppRoutes.profile,
           ),
         ],
       ),
