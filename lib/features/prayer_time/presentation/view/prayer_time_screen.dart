@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_tokens.dart';
+import '../../../../app/theme/app_typography.dart';
 import '../../../../app/utils/hijri_utils.dart';
 import '../../../../app/utils/prayer_time_utils.dart';
+import '../../../../global_widgets/app_card.dart';
+import '../../../../global_widgets/app_state_view.dart';
 import '../../../../global_widgets/loading_indicator.dart';
 import '../../data/services/prayer_time_service.dart';
 import '../../domain/models/prayer_time_model.dart';
@@ -17,10 +22,10 @@ class PrayerTimeScreen extends ConsumerWidget {
   static const _icons = {
     PrayerSlot.fajr: Icons.wb_twilight,
     PrayerSlot.sunrise: Icons.wb_sunny_outlined,
-    PrayerSlot.dhuhr: Icons.wb_sunny,
-    PrayerSlot.asr: Icons.cloud_outlined,
+    PrayerSlot.dhuhr: Icons.light_mode_rounded,
+    PrayerSlot.asr: Icons.wb_cloudy_outlined,
     PrayerSlot.maghrib: Icons.nights_stay_outlined,
-    PrayerSlot.isha: Icons.nightlight_round,
+    PrayerSlot.isha: Icons.dark_mode_rounded,
   };
 
   @override
@@ -30,52 +35,77 @@ class PrayerTimeScreen extends ConsumerWidget {
     final nextAsync = ref.watch(nextPrayerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('নামাজের সময়')),
+      appBar: AppBar(
+        title: const Text('নামাজের সময়'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            tooltip: 'আযান সেটিংস',
+            onPressed: () => context.push(AppRoutes.azanSettings),
+          ),
+          IconButton(
+            icon: const Icon(Icons.location_on_outlined),
+            tooltip: 'শহর নির্বাচন',
+            onPressed: () => context.push(AppRoutes.citySelector),
+          ),
+          const SizedBox(width: Space.xs),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(resolvedLocationProvider);
           await ref.read(prayerTimesProvider.future);
         },
         child: timesAsync.when(
-          loading: () => const LoadingIndicator(),
+          loading: () => const SkeletonList(itemCount: 6, itemHeight: 72),
           error: (_, _) => ListView(
             children: [
-              SizedBox(height: 80.h),
-              const _Message(
-                emoji: '⚠️',
-                text: 'নামাজের সময় গণনা করা যায়নি। টেনে রিফ্রেশ করুন।',
+              SizedBox(height: MediaQuery.sizeOf(context).height * 0.15),
+              AppStateView.error(
+                title: 'সময় গণনা করা যায়নি',
+                message: 'নিচে টেনে আবার চেষ্টা করুন, অথবা আপনার শহর '
+                    'নির্বাচন করুন।',
+                actionLabel: 'শহর নির্বাচন',
+                onAction: () => context.push(AppRoutes.citySelector),
               ),
             ],
           ),
           data: (times) {
-            final current = times.currentAt(DateTime.now());
+            final now = DateTime.now();
+            final current = times.currentAt(now);
 
             return ListView(
-              padding: EdgeInsets.all(16.w),
+              padding: const EdgeInsets.fromLTRB(
+                Space.lg,
+                Space.lg,
+                Space.lg,
+                Space.xxxl,
+              ),
               children: [
-                // FR-N-18 — location, date, and live countdown.
-                _Header(
+                _CountdownHero(
                   times: times,
                   location: locationAsync.value,
                   next: nextAsync.value,
                 ),
-                SizedBox(height: 16.h),
+                const SizedBox(height: Space.lg),
 
-                // G-06 — when the location is a guess, say so. The previous
+                // G-06 — when the location is a guess, say so. The original
                 // build silently used Dhaka, so a user in Sylhet saw times
                 // that were quietly wrong with no way to notice.
                 if (locationAsync.value?.isApproximate ?? false) ...[
                   const _ApproximateWarning(),
-                  SizedBox(height: 16.h),
+                  const SizedBox(height: Space.lg),
                 ],
 
                 for (final prayer in times.prayers)
                   PrayerCard(
+                    slot: prayer.slot,
                     name: prayer.bangla,
                     time: PrayerTimeUtils.formatBangla(prayer.time),
                     icon: _icons[prayer.slot] ?? Icons.access_time,
                     isCurrent: current?.slot == prayer.slot,
                     isNext: nextAsync.value?.prayer.slot == prayer.slot,
+                    isPast: prayer.time.isBefore(now),
                   ),
               ],
             );
@@ -86,8 +116,12 @@ class PrayerTimeScreen extends ConsumerWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.times, this.location, this.next});
+/// Location, Hijri date, and the live countdown.
+///
+/// The countdown is the reason this screen is opened between prayers, so it is
+/// the largest element and everything else is context around it.
+class _CountdownHero extends StatelessWidget {
+  const _CountdownHero({required this.times, this.location, this.next});
 
   final PrayerTimesModel times;
   final ResolvedLocation? location;
@@ -97,52 +131,65 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final hijri = HijriDate.fromGregorian(times.date);
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(18.w),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.primary, AppColors.primaryLight],
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
+    return GradientCard(
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.location_on_outlined, size: 16.sp, color: Colors.white70),
-              SizedBox(width: 4.w),
+              Icon(
+                Icons.location_on_outlined,
+                size: 14,
+                color: Colors.white.withValues(alpha: 0.75),
+              ),
+              const SizedBox(width: Space.xs),
               Flexible(
                 child: Text(
                   location?.name ?? '—',
-                  style: TextStyle(color: Colors.white70, fontSize: 13.sp),
                   overflow: TextOverflow.ellipsis,
+                  style: AppType.labelSmall.copyWith(
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 8.h),
+          const SizedBox(height: Space.sm),
           Text(
             '${PrayerTimeUtils.toBanglaDigits('${hijri.day}')} '
             '${hijri.monthNameBangla} '
             '${PrayerTimeUtils.toBanglaDigits('${hijri.year}')} হিজরি',
-            style: TextStyle(color: Colors.white, fontSize: 15.sp),
+            style: AppType.body.copyWith(color: Colors.white),
           ),
           if (next != null) ...[
-            SizedBox(height: 16.h),
-            Text(
-              'পরবর্তী ${next!.prayer.bangla}',
-              style: TextStyle(color: Colors.white70, fontSize: 13.sp),
+            const SizedBox(height: Space.xl),
+            Container(
+              height: 1,
+              color: Colors.white.withValues(alpha: 0.15),
             ),
-            SizedBox(height: 4.h),
-            // FR-N-16 — live countdown, updating once per second.
+            const SizedBox(height: Space.xl),
             Text(
-              next!.remainingBangla,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24.sp,
-                fontWeight: FontWeight.bold,
+              '${next!.prayer.bangla} শুরু হতে বাকি',
+              style: AppType.labelSmall.copyWith(
+                color: Colors.white.withValues(alpha: 0.8),
+              ),
+            ),
+            const SizedBox(height: Space.sm),
+            // FR-N-16 — live, once per second. FittedBox because the string
+            // grows from "৫ মিনিট" to "১১ ঘণ্টা ৫৯ মিনিট" across a day and
+            // must not wrap or clip at either end.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                next!.remainingBangla,
+                style: AppType.displayMedium.copyWith(color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: Space.sm),
+            Text(
+              PrayerTimeUtils.formatBangla(next!.prayer.time),
+              style: AppType.label.copyWith(
+                color: Colors.white.withValues(alpha: 0.85),
               ),
             ),
           ],
@@ -157,53 +204,43 @@ class _ApproximateWarning extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(12.w),
-      decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
-      ),
+    return AppCard(
+      color: AppColors.warning.withValues(alpha: 0.10),
+      borderColor: AppColors.warning.withValues(alpha: 0.35),
+      padding: const EdgeInsets.all(Space.md),
+      onTap: () => context.push(AppRoutes.citySelector),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 20.sp),
-          SizedBox(width: 10.w),
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: AppColors.warning,
+            size: 20,
+          ),
+          const SizedBox(width: Space.md),
           Expanded(
-            child: Text(
-              'অবস্থান পাওয়া যায়নি, ঢাকার সময় দেখানো হচ্ছে। '
-              'সঠিক সময়ের জন্য সেটিংস থেকে আপনার শহর নির্বাচন করুন।',
-              style: TextStyle(fontSize: 13.sp, height: 1.5, color: AppColors.warning),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'আনুমানিক অবস্থান',
+                  style: AppType.label.copyWith(color: AppColors.warning),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'ঢাকার সময় দেখানো হচ্ছে। সঠিক সময়ের জন্য আপনার শহর '
+                  'নির্বাচন করুন।',
+                  style: AppType.bodySmall.copyWith(color: AppColors.warning),
+                ),
+              ],
             ),
           ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: AppColors.warning,
+            size: 20,
+          ),
         ],
-      ),
-    );
-  }
-}
-
-class _Message extends StatelessWidget {
-  const _Message({required this.emoji, required this.text});
-
-  final String emoji;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(32.w),
-        child: Column(
-          children: [
-            Text(emoji, style: TextStyle(fontSize: 44.sp)),
-            SizedBox(height: 16.h),
-            Text(
-              text,
-              style: TextStyle(fontSize: 15.sp, color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
       ),
     );
   }

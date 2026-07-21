@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_tokens.dart';
+import '../../../../app/theme/app_typography.dart';
+import '../../../../global_widgets/app_card.dart';
 
 /// A titled group of profile rows, matching the Settings screen's grouping so
 /// the two read as one app rather than two.
@@ -21,17 +23,17 @@ class ProfileSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.only(left: 4.w, bottom: 8.h),
+          padding: const EdgeInsets.only(left: Space.xs, bottom: Space.sm),
           child: Text(
-            title,
-            style: TextStyle(
-              fontSize: 13.sp,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
+            title.toUpperCase(),
+            style: AppType.overline
+                .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ),
-        Card(child: Column(children: children)),
+        AppCard(
+          padding: EdgeInsets.zero,
+          child: Column(children: children),
+        ),
       ],
     );
   }
@@ -57,22 +59,48 @@ class ProfileTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = destructive ? AppColors.error : AppColors.primary;
+    final theme = Theme.of(context);
+    final isLight = theme.brightness == Brightness.light;
+    final color = destructive ? AppColors.error : theme.colorScheme.primary;
 
     return ListTile(
-      leading: Icon(icon, color: color),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: Space.lg,
+        vertical: Space.xs,
+      ),
+      // A tinted plate keeps every row's icon at the same optical weight,
+      // however dense the glyph.
+      leading: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: isLight ? 0.10 : 0.18),
+          borderRadius: Radii.smAll,
+        ),
+        child: Icon(icon, color: color, size: 19),
+      ),
       title: Text(
         title,
-        style: TextStyle(
-          fontSize: 14.sp,
-          fontWeight: FontWeight.w500,
-          color: destructive ? AppColors.error : null,
+        style: AppType.bodyLarge.copyWith(
+          fontWeight: FontWeight.w600,
+          color: destructive ? AppColors.error : theme.colorScheme.onSurface,
         ),
       ),
       subtitle: subtitle == null
           ? null
-          : Text(subtitle!, style: TextStyle(fontSize: 12.sp)),
-      trailing: const Icon(Icons.chevron_right, size: 20),
+          : Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                subtitle!,
+                style: AppType.bodySmall
+                    .copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+            ),
+      trailing: Icon(
+        Icons.chevron_right_rounded,
+        size: 20,
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
       onTap: onTap,
     );
   }

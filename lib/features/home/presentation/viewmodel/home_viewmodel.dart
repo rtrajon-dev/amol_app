@@ -7,10 +7,15 @@ class HomeViewModel {
   const HomeViewModel({
     required this.completedAmalCount,
     required this.totalAmalCount,
+    this.streak = 0,
   });
 
   final int completedAmalCount;
   final int totalAmalCount;
+
+  /// Consecutive days with at least one amal. Surfaced on Home because a
+  /// streak the user cannot see is a streak they will not protect.
+  final int streak;
 }
 
 /// Summary counts for the home screen's amal card.
@@ -24,6 +29,7 @@ final homeViewModelProvider = Provider<HomeViewModel>((ref) {
   final amal = ref.watch(amalTrackerProvider).value;
 
   return HomeViewModel(
+    streak: amal?.streak ?? 0,
     completedAmalCount: amal?.completedCount ?? 0,
     // While the first load is in flight the total is still known, so the card
     // shows "0/9" rather than briefly claiming there is nothing to do.

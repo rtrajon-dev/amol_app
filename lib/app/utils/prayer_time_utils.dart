@@ -106,6 +106,20 @@ class PrayerTimeUtils {
     return '${toBanglaDigits('$h:$m')} $period';
   }
 
+  /// Gregorian date in Bangla, e.g. "২১ জুলাই ২০২৬".
+  ///
+  /// Written out rather than pulled from `intl`: the bundled Bangla locale
+  /// abbreviates months in a form most readers here do not use day to day.
+  static String formatDateBangla(DateTime date) {
+    const months = [
+      'জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন',
+      'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর',
+    ];
+    final month = months[date.month - 1];
+    return '${toBanglaDigits('${date.day}')} $month '
+        '${toBanglaDigits('${date.year}')}';
+  }
+
   static String toBanglaDigits(String value) {
     const digits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
     return value.split('').map((c) {

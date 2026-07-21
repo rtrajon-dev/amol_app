@@ -10,6 +10,7 @@ import '../../../../app/router/app_routes.dart';
 import '../../../../app/services/push_service.dart';
 import '../../../../app/services/storage_service.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/theme_mode_provider.dart';
 import '../../../auth/presentation/viewmodel/auth_viewmodel.dart';
 import '../../../subscription/presentation/viewmodel/subscription_viewmodel.dart';
 
@@ -81,6 +82,38 @@ class SettingsScreen extends ConsumerWidget {
       );
     } on ApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  /// Theme picker. Three explicit options rather than a toggle, because
+  /// "follow the system" is a real third choice and a switch cannot express it.
+  Future<void> _pickThemeMode(BuildContext context, WidgetRef ref) async {
+    final current = ref.read(themeModeProvider);
+
+    final chosen = await showModalBottomSheet<ThemeMode>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: RadioGroup<ThemeMode>(
+          groupValue: current,
+          onChanged: (value) => Navigator.pop(sheetContext, value),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final mode in ThemeMode.values)
+                RadioListTile<ThemeMode>(
+                  value: mode,
+                  title: Text(ThemeModeNotifier.labelFor(mode)),
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (chosen != null) {
+      await ref.read(themeModeProvider.notifier).set(chosen);
     }
   }
 
@@ -185,9 +218,25 @@ class SettingsScreen extends ConsumerWidget {
           ]),
           SizedBox(height: 16.h),
           _SettingsSection(title: 'অ্যাপ', items: [
-            _SettingsItem(icon: Icons.dark_mode_outlined, title: 'ডার্ক মোড', subtitle: 'সিস্টেম', onTap: () {}),
-            _SettingsItem(icon: Icons.language, title: 'ভাষা', subtitle: 'বাংলা', onTap: () {}),
-            _SettingsItem(icon: Icons.text_fields, title: 'আরবি ফন্ট সাইজ', subtitle: 'মাঝারি', onTap: () {}),
+            _SettingsItem(
+              icon: Icons.dark_mode_outlined,
+              title: 'থিম',
+              subtitle: ThemeModeNotifier.labelFor(ref.watch(themeModeProvider)),
+              onTap: () => _pickThemeMode(context, ref),
+            ),
+            // Bangla-only by design (C-02), so this states the fact rather
+            // than offering a choice that does not exist. A row that opens an
+            // empty picker is worse than a row that explains itself.
+            _SettingsItem(
+              icon: Icons.language,
+              title: 'ভাষা',
+              subtitle: 'বাংলা',
+              onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('এই সংস্করণে শুধু বাংলা সমর্থিত।'),
+                ),
+              ),
+            ),
           ]),
           SizedBox(height: 16.h),
           // FR-S-10 — one of only two conversion paths once the automatic
