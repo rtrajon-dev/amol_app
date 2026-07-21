@@ -7,6 +7,7 @@ import '../../../../app/theme/app_typography.dart';
 import '../../../../app/utils/hijri_utils.dart';
 import '../../../../app/utils/prayer_time_utils.dart';
 import '../../../prayer_time/presentation/viewmodel/prayer_time_viewmodel.dart';
+import 'home_actions.dart';
 
 /// The home header: greeting, both dates, and the next prayer countdown.
 ///
@@ -42,16 +43,30 @@ class HomeHero extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'আস-সালামু আলাইকুম',
-                style: AppType.bodySmall.copyWith(
-                  color: Colors.white.withValues(alpha: 0.72),
-                ),
-              ),
-              const SizedBox(height: Space.xs),
-              Text(
-                'ইসলামিক আমল',
-                style: AppType.h1.copyWith(color: Colors.white),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'আস-সালামু আলাইকুম',
+                          style: AppType.bodySmall.copyWith(
+                            color: Colors.white.withValues(alpha: 0.72),
+                          ),
+                        ),
+                        const SizedBox(height: Space.xs),
+                        Text(
+                          'ইসলামিক আমল',
+                          style: AppType.h1.copyWith(color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: Space.sm),
+                  const HomeActions(),
+                ],
               ),
               const SizedBox(height: Space.md),
 

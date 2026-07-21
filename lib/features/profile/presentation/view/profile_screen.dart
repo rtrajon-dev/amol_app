@@ -9,7 +9,6 @@ import '../../../../app/services/storage_service.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_tokens.dart';
 import '../../../../app/theme/app_typography.dart';
-import '../../../../app/theme/theme_mode_provider.dart';
 import '../../../../app/utils/prayer_time_utils.dart';
 import '../../../../global_widgets/option_picker.dart';
 import '../../../auth/presentation/viewmodel/auth_viewmodel.dart';
@@ -38,7 +37,6 @@ class ProfileScreen extends ConsumerWidget {
     final auth = ref.watch(authProvider);
     final entitlement = ref.watch(entitlementProvider);
     final flags = ref.watch(featureFlagsProvider);
-    final themeMode = ref.watch(themeModeProvider);
 
     final locationName =
         StorageService.instance.getString(StorageKeys.locationName);
@@ -136,31 +134,6 @@ class ProfileScreen extends ConsumerWidget {
             ),
             const SizedBox(height: Space.xl),
           ],
-
-          ProfileSection(
-            title: 'অ্যাপ',
-            children: [
-              ProfileTile(
-                icon: Icons.dark_mode_outlined,
-                title: 'থিম',
-                subtitle: ThemeModeNotifier.labelFor(themeMode),
-                onTap: () => _pickThemeMode(context, ref, themeMode),
-              ),
-              // Bangla-only by design (C-02), so this states the fact rather
-              // than opening a picker with one option in it.
-              ProfileTile(
-                icon: Icons.language,
-                title: 'ভাষা',
-                subtitle: 'বাংলা',
-                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('এই সংস্করণে শুধু বাংলা সমর্থিত।'),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Space.xl),
 
           ProfileSection(
             title: 'অ্যাকাউন্ট',
@@ -263,27 +236,7 @@ class ProfileScreen extends ConsumerWidget {
     ref.read(azanSchedulerProvider).rescheduleAll();
   }
 
-  // --------------------------------------------------------------------- app
-
-  Future<void> _pickThemeMode(
-    BuildContext context,
-    WidgetRef ref,
-    ThemeMode current,
-  ) async {
-    final chosen = await showOptionPicker<ThemeMode>(
-      context: context,
-      title: 'থিম',
-      current: current,
-      options: [
-        for (final mode in ThemeMode.values)
-          PickerOption(value: mode, label: ThemeModeNotifier.labelFor(mode)),
-      ],
-    );
-
-    if (chosen != null) {
-      await ref.read(themeModeProvider.notifier).set(chosen);
-    }
-  }
+  // ------------------------------------------------------------ notifications
 
   /// FR-P-02 / FR-P-03 — permission is requested HERE, at the moment the user
   /// asks for the feature, never at startup. Asking on first launch before any

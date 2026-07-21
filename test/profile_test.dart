@@ -91,8 +91,18 @@ void main() {
       // Settings was merged in; these rows have no other home.
       expect(find.text('শহর নির্বাচন'), findsOneWidget);
       expect(find.text('হিসাব পদ্ধতি'), findsOneWidget);
+      expect(find.text('মাযহাব'), findsOneWidget);
       expect(find.text('আযান নোটিফিকেশন'), findsOneWidget);
-      expect(find.text('থিম'), findsOneWidget);
+    });
+
+    testWidgets('leaves theme and language to the home header',
+        (tester) async {
+      await pumpProfile(tester, flags: FeatureFlags.phase1);
+
+      // Promoted to Home as icons. Keeping them here too would recreate the
+      // duplication the Settings merge removed.
+      expect(find.text('থিম'), findsNothing);
+      expect(find.text('ভাষা'), findsNothing);
     });
 
     testWidgets('no longer links to a separate Settings screen',
