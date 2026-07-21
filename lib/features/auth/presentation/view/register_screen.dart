@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/di/registration_coordinator.dart';
 import '../../../../app/services/storage_service.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../global_widgets/primary_button.dart';
+import '../../../subscription/presentation/viewmodel/subscription_viewmodel.dart';
 import '../viewmodel/auth_viewmodel.dart';
 import '../widgets/auth_text_field.dart';
 
@@ -20,12 +22,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _email = TextEditingController();
+  final _phone = TextEditingController();
   final _password = TextEditingController();
 
   @override
   void dispose() {
     _name.dispose();
     _email.dispose();
+    _phone.dispose();
     _password.dispose();
     super.dispose();
   }
@@ -35,9 +39,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     final email = _email.text.trim();
-    final ok = await ref.read(authProvider.notifier).register(
+
+    // Normalised here so the server stores one canonical form, whatever the
+    // user typed (+880, spaces, dashes).
+    final msisdn = SubscriptionNotifier.normaliseMsisdn(_phone.text);
+    if (msisdn == null) return; // the field validator already said why
+
+    // Routed through the coordinator, not authProvider directly: registration
+    // has to be followed by the subscription lookup before anything navigates,
+    // or a user who already pays is shown the paywall for a moment (FR-S-19).
+    final ok = await ref.read(registrationCoordinatorProvider).register(
           email: email,
           password: _password.text,
+          msisdn: msisdn,
           displayName: _name.text.trim(),
         );
 
@@ -98,6 +112,32 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       }
                       return null;
                     },
+                  ),
+                  SizedBox(height: 20.h),
+
+                  // FR-A-13 — billing is per number, so this is what links the
+                  // account to a subscription. Collected here rather than at
+                  // the paywall so someone who already subscribed on the web is
+                  // recognised before any payment screen appears.
+                  AuthTextField(
+                    controller: _phone,
+                    label: 'রবি / এয়ারটেল নম্বর',
+                    hint: '01XXXXXXXXX',
+                    keyboardType: TextInputType.phone,
+                    textInputAction: TextInputAction.next,
+                    autofillHints: const [AutofillHints.telephoneNumber],
+                    enabled: !state.isBusy,
+                    validator: (v) =>
+                        SubscriptionNotifier.normaliseMsisdn(v ?? '') == null
+                            ? 'সঠিক মোবাইল নম্বর দিন (যেমন ০১৭xxxxxxxx)'
+                            : null,
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    'সাবস্ক্রিপশন এই নম্বরেই থাকবে। আগে থেকে সাবস্ক্রাইব করা '
+                    'থাকলে নতুন করে চার্জ হবে না।',
+                    style: TextStyle(
+                        fontSize: 11.sp, color: AppColors.textSecondary),
                   ),
                   SizedBox(height: 20.h),
 

@@ -16,11 +16,13 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<AppUser> register({
     required String email,
     required String password,
+    required String msisdn,
     String? displayName,
   }) async {
     final data = await _api.register(
       email: email.trim(),
       password: password,
+      msisdn: msisdn,
       displayName: displayName?.trim(),
     );
     return _persistSession(data);

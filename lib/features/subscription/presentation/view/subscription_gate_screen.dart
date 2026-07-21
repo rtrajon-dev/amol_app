@@ -26,7 +26,11 @@ class SubscriptionGateScreen extends ConsumerStatefulWidget {
     this.canDismiss = true,
     this.isAutomaticPrompt = true,
     this.onSignOut,
+    this.initialMsisdn,
   });
+
+  /// Pre-fills the number field. Normally the account's registered number.
+  final String? initialMsisdn;
 
   /// Called on both dismissal and success — the caller decides where to go, so
   /// this screen works identically as a startup gate and as a Settings entry.
@@ -60,7 +64,15 @@ class _SubscriptionGateScreenState extends ConsumerState<SubscriptionGateScreen>
       // flow.
       ref.read(subscriptionProvider.notifier).reset();
       if (widget.isAutomaticPrompt) {
-        SubscriptionGatePolicy.recordShown(); // FR-S-09
+        SubscriptionGatePolicy.recordShown();
+      }
+
+      // Pre-fill with the number given at registration (FR-A-13). Editable,
+      // because the number that pays is not always the one they signed up
+      // with — but retyping a number the app already holds is pure friction.
+      final known = widget.initialMsisdn;
+      if (known != null && known.isNotEmpty && _phone.text.isEmpty) {
+        _phone.text = known;
       }
     });
     // Drives the resend countdown label.

@@ -6,18 +6,31 @@ class AppUser {
   const AppUser({
     required this.id,
     required this.email,
+    this.msisdn,
     this.displayName,
     this.emailVerified = false,
   });
 
   final int id;
   final String email;
+
+  /// The number given at registration, unmasked (FR-A-13).
+  ///
+  /// Billing is per MSISDN, so this is what links the account to a
+  /// subscription. Held in full — unlike `Entitlement.maskedMsisdn` — because
+  /// the subscribe screen pre-fills it, and a masked value would make the user
+  /// retype a number they already provided.
+  ///
+  /// Null for accounts created before registration collected it.
+  final String? msisdn;
+
   final String? displayName;
   final bool emailVerified;
 
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
         id: (json['id'] as num).toInt(),
         email: (json['email'] ?? '').toString(),
+        msisdn: json['msisdn'] as String?,
         displayName: json['displayName'] as String?,
         emailVerified: json['emailVerified'] == true,
       );

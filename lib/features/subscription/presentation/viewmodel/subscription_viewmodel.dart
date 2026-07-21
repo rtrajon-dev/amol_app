@@ -23,7 +23,11 @@ class EntitlementNotifier extends Notifier<Entitlement> {
   /// NFR-S-04 — feature gating reads from cache and never awaits the network.
   Future<void> _restore() async {
     final repository = ref.read(subscriptionRepositoryProvider);
-    state = await repository.cached();
+    final cached = await repository.cached();
+    // The scope can be torn down while this is in flight — a logout, or the app
+    // closing. Assigning state to a disposed provider throws.
+    if (!ref.mounted) return;
+    state = cached;
     unawaitedRevalidate();
   }
 
@@ -31,7 +35,10 @@ class EntitlementNotifier extends Notifier<Entitlement> {
   /// never downgrades on a network failure (FR-S-15).
   Future<void> unawaitedRevalidate() async {
     try {
-      state = await ref.read(subscriptionRepositoryProvider).refreshIfStale();
+      final fresh =
+          await ref.read(subscriptionRepositoryProvider).refreshIfStale();
+      if (!ref.mounted) return;
+      state = fresh;
     } on ApiException {
       // Keep whatever we had. An unreachable server is not a verdict.
     }

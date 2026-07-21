@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/config/feature_flags.dart';
 import '../../../../app/di/providers.dart';
+import '../../../../app/di/registration_coordinator.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../global_widgets/section_header.dart';
@@ -33,7 +34,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(ref.read(contentSyncServiceProvider).maybeSync());
+      _announceRecognisedSubscription();
     });
+  }
+
+  /// Tells a user who registered with an already-subscribed number that they
+  /// were recognised — otherwise they simply land on Home and are left to
+  /// wonder whether they are about to be charged again.
+  ///
+  /// Shown here rather than on the registration screen because that screen is
+  /// gone by the time the answer arrives.
+  void _announceRecognisedSubscription() {
+    if (!ref.read(subscriptionRecognisedProvider)) return;
+
+    // Consume it, so it appears once rather than on every visit to Home.
+    ref.read(subscriptionRecognisedProvider.notifier).set(false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('আপনার সাবস্ক্রিপশন সক্রিয় আছে — নতুন করে চার্জ হয়নি।'),
+        duration: Duration(seconds: 4),
+      ),
+    );
   }
 
   @override

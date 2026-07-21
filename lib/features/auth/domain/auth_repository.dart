@@ -13,6 +13,7 @@ abstract class AuthRepository {
   Future<AppUser> register({
     required String email,
     required String password,
+    required String msisdn,
     String? displayName,
   });
 

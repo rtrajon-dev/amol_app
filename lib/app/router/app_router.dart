@@ -26,6 +26,7 @@ import '../../features/surah/presentation/view/surah_detail_screen.dart';
 import '../../features/surah/presentation/view/surah_screen.dart';
 import '../../features/tasbeeh/presentation/view/tasbeeh_screen.dart';
 import '../config/feature_flags.dart';
+import '../di/registration_coordinator.dart';
 import '../services/storage_service.dart';
 import '../shell/main_shell.dart';
 import 'app_routes.dart';
@@ -37,6 +38,9 @@ class _RouterRefresh extends ChangeNotifier {
     // Entitlement restores asynchronously from secure storage; without this
     // the gate would still be showing after the cache says "premium".
     ref.listen(entitlementProvider, (_, _) => notifyListeners());
+    // Registration holds routing until the subscription lookup answers, so the
+    // router has to re-evaluate when that flag clears.
+    ref.listen(subscriptionResolvingProvider, (_, _) => notifyListeners());
   }
 }
 
@@ -102,7 +106,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return authRoutes.contains(path) ? null : AppRoutes.login;
       }
 
-      // 5. Subscription (FR-G-06) — MANDATORY, and after login rather than
+      // 5. Hold while a just-registered session learns whether it already has
+      //    a subscription. Routing now would send a paying web subscriber to
+      //    the paywall for the moment it takes the check to return.
+      if (ref.read(subscriptionResolvingProvider)) {
+        return null;
+      }
+
+      // 6. Subscription (FR-G-06) — MANDATORY, and after login rather than
       //    before it. The whole app is the paid product, so an authenticated
       //    user without entitlement has nothing to be let through to.
       //
@@ -124,7 +135,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return AppRoutes.subscription;
       }
 
-      // 6. Subscribed users never sit on splash or an auth screen.
+      // 7. Subscribed users never sit on splash or an auth screen.
       if (path == AppRoutes.splash || authRoutes.contains(path)) {
         return AppRoutes.home;
       }
@@ -154,6 +165,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return SubscriptionGateScreen(
             isAutomaticPrompt: !isManual,
             canDismiss: canDismiss,
+            initialMsisdn: ref.read(authProvider).user?.msisdn,
             // The one way out of a mandatory gate. Without it a user who
             // cannot or will not pay is trapped with no exit and no way to
             // reach a different account.

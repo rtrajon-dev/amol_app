@@ -12,11 +12,13 @@ class AuthApi {
   Future<Map<String, dynamic>> register({
     required String email,
     required String password,
+    required String msisdn,
     String? displayName,
   }) =>
       _client.post('/auth/register', body: {
         'email': email,
         'password': password,
+        'msisdn': msisdn,
         if (displayName != null && displayName.isNotEmpty)
           'displayName': displayName,
       });

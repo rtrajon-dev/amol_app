@@ -65,6 +65,7 @@ class AuthNotifier extends Notifier<AuthState> {
     final repository = ref.read(authRepositoryProvider);
 
     final hasSession = await repository.hasLocalSession();
+    if (!ref.mounted) return;
     if (!hasSession) {
       state = state.copyWith(status: AuthStatus.unauthenticated, clearUser: true);
       return;
@@ -79,6 +80,7 @@ class AuthNotifier extends Notifier<AuthState> {
     final repository = ref.read(authRepositoryProvider);
     try {
       final user = await repository.me();
+      if (!ref.mounted) return;
       state = state.copyWith(user: user, status: AuthStatus.authenticated);
     } on ApiException catch (e) {
       if (e.isNetworkFailure) {
@@ -109,12 +111,14 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<bool> register({
     required String email,
     required String password,
+    required String msisdn,
     String? displayName,
   }) async {
     return _run(() async {
       final user = await ref.read(authRepositoryProvider).register(
             email: email,
             password: password,
+            msisdn: msisdn,
             displayName: displayName,
           );
       state = state.copyWith(
