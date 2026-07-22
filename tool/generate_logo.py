@@ -117,6 +117,68 @@ def on_emerald(mark: Image.Image, size: int, radius_ratio: float = 0.0) -> Image
     return bg
 
 
+def draw_notification_mark(size: int) -> Image.Image:
+    """The status-bar icon: a white crescent on transparency.
+
+    Android ignores the colour of a notification icon entirely and draws it as
+    a silhouette from the alpha channel, so only the shape carries. That rules
+    out the launcher mark: the gold ring is what makes it recognisable, and at
+    24dp the ring is a 1.7px hairline that aliases into a grey smudge and takes
+    the crescent's contrast with it.
+
+    So this is the crescent alone, drawn larger than it sits inside the ring.
+    One solid shape is what survives the status bar, and it is still the same
+    symbol the launcher icon leads with.
+    """
+    s = size * SUPERSAMPLE
+    c = s / 2
+
+    # Android's own guidance keeps the artwork inside ~22 of 24dp; the system
+    # adds no padding of its own, so a mark drawn edge to edge looks cropped.
+    outer_r = 0.42 * s
+    carve_r = 0.345 * s
+    carve_dx = 0.132 * s
+    carve_dy = -0.055 * s
+
+    mask = Image.new("L", (s, s), 0)
+    mdraw = ImageDraw.Draw(mask)
+    mdraw.ellipse([c - outer_r, c - outer_r, c + outer_r, c + outer_r], fill=255)
+    mdraw.ellipse(
+        [
+            c + carve_dx - carve_r,
+            c + carve_dy - carve_r,
+            c + carve_dx + carve_r,
+            c + carve_dy + carve_r,
+        ],
+        fill=0,
+    )
+
+    img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+    img.paste(Image.new("RGBA", (s, s), WHITE), (0, 0), mask)
+    return img.resize((size, size), Image.LANCZOS)
+
+
+def write_notification_icons() -> None:
+    """Writes ic_notification.png into the Android densities.
+
+    Straight into res/ rather than brand/, because unlike the launcher icon
+    there is no generator step (flutter_launcher_icons) to move it afterwards —
+    flutter_local_notifications resolves this resource by name at runtime.
+
+    That runtime lookup is why this file has to exist and has to keep this
+    name: a missing notification icon is not a cosmetic failure, it throws
+    PlatformException from the plugin's initialize().
+    """
+    res = Path("android/app/src/main/res")
+    for density, px in (
+        ("mdpi", 24), ("hdpi", 36), ("xhdpi", 48), ("xxhdpi", 72), ("xxxhdpi", 96)
+    ):
+        target = res / f"drawable-{density}"
+        target.mkdir(parents=True, exist_ok=True)
+        draw_notification_mark(px).save(target / "ic_notification.png")
+        print(f"{target}/ic_notification.png  ({px}x{px})")
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
 
@@ -147,6 +209,8 @@ def main() -> None:
         x += px + 30
     preview.save("/tmp/amol365_logo_preview.png")
     print("preview: /tmp/amol365_logo_preview.png")
+
+    write_notification_icons()
 
     for f in sorted(OUT.glob("*.png")):
         print(f"{f}  {Image.open(f).size}")

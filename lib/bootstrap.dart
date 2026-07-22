@@ -12,6 +12,28 @@ import 'app/services/remote_config_service.dart';
 import 'app/services/storage_service.dart';
 import 'app/services/telemetry_service.dart';
 
+/// Runs a startup step, absorbing anything it throws.
+///
+/// Nothing between `main()` and `runApp()` may fail fatally. An exception
+/// escaping here does not crash the app in the way a user could recognise —
+/// the process stays alive on the Android launch theme with no Flutter view
+/// ever created, so the app hangs on the splash forever with no error and no
+/// way out but force-quit. That is exactly how a renamed launcher icon
+/// (`@mipmap/ic_launcher` → `launcher_icon`) took the whole app down: the
+/// notification plugin threw PlatformException from its initialize().
+///
+/// Every step below is optional to the core of the app. Prayer times, qibla,
+/// tasbeeh and the amal tracker need none of them, and a user who cannot open
+/// the app is worse off than one whose analytics are missing.
+Future<void> _guarded(String step, Future<void> Function() run) async {
+  try {
+    await run();
+  } catch (e, stack) {
+    debugPrint('bootstrap: "$step" failed and was skipped — $e');
+    debugPrintStack(stackTrace: stack);
+  }
+}
+
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -23,14 +45,14 @@ Future<void> bootstrap() async {
 
   // Local notifications — azan. Independent of Firebase and of the network
   // (FR-P-04); initialised first so a Firebase problem can never delay it.
-  await NotificationService.instance.initialize();
+  await _guarded('notifications', NotificationService.instance.initialize);
 
   // M-6. Every one of these degrades to a no-op without config files
   // (docs/FIREBASE.md), so the app starts normally either way.
-  await FirebaseService.instance.initialize();
-  await TelemetryService.instance.initialize();
-  await RemoteConfigService.instance.initialize();
-  await PushService.instance.initialize();
+  await _guarded('firebase', FirebaseService.instance.initialize);
+  await _guarded('telemetry', TelemetryService.instance.initialize);
+  await _guarded('remote-config', RemoteConfigService.instance.initialize);
+  await _guarded('push', PushService.instance.initialize);
 
   // FR-BE-08 — X-App-Version. Read once; it cannot change at runtime.
   var appVersion = '0.0.0';

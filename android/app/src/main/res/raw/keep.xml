@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Resources the shrinker cannot see are referenced.
+
+  Release builds run resource shrinking, which keeps a resource only if it can
+  find a reference to it in the manifest, in another resource, or in the dex.
+  `ic_notification` is named in a Dart string and resolved at runtime through
+  Resources.getIdentifier(), so none of those apply and it is removed as unused.
+
+  This is not a hypothetical. The app shipped with exactly that failure: the
+  notification icon was `@mipmap/ic_launcher`, flutter_launcher_icons renamed
+  the launcher resource to `launcher_icon`, and `ic_launcher` — still present in
+  the source tree, which is what made it invisible — stopped being referenced by
+  the manifest and was shrunk out of the APK. flutter_local_notifications then
+  threw PlatformException from initialize(), inside bootstrap() and before
+  runApp(), so the app hung on the splash screen forever.
+
+  Keep this in step with the icon named in NotificationService.
+-->
+<resources
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_notification" />
