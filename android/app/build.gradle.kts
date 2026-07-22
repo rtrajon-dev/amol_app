@@ -1,9 +1,30 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+/// Release signing credentials.
+///
+/// Lives in android/key.properties, which is gitignored — the keystore
+/// password must never enter version control. See android/key.properties.example.
+///
+/// Absent on a machine that has not been set up (CI, a fresh clone), in which
+/// case release builds fall back to debug signing so `flutter run --release`
+/// still works locally. That fallback is for CONVENIENCE ONLY: a debug-signed
+/// APK must never be distributed, because Android refuses an update signed with
+/// a different key, and the user's only escape is to uninstall — which wipes
+/// the local database holding their amal history and streaks.
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("key.properties")
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    }
+}
+val hasReleaseKeystore = keystoreProperties.getProperty("storeFile") != null
 
 android {
     namespace = "com.bdapps.amol365"
@@ -31,11 +52,30 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            create("release") {
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasReleaseKeystore) {
+                signingConfigs.getByName("release")
+            } else {
+                // Local convenience only — never ship this. The build prints a
+                // warning so an unsigned release cannot leave quietly.
+                logger.warn(
+                    "\n*** android/key.properties not found — the release build is " +
+                        "DEBUG-SIGNED and must not be distributed. ***\n"
+                )
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

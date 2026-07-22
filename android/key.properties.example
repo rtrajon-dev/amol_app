@@ -1,0 +1,24 @@
+# Release signing — copy to `key.properties` and fill in.
+#
+# key.properties itself is gitignored and MUST stay that way. It holds the
+# password to the keystore that identifies this app to Android forever.
+#
+# Generate the keystore with:
+#
+#   keytool -genkey -v \
+#     -keystore ~/amol365-release.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 \
+#     -alias amol365
+#
+# BACK THE .jks FILE UP somewhere you will still have in five years, and store
+# the password in a password manager. If either is lost, this app can never be
+# updated again — not by you, not by anyone. Every existing user would have to
+# uninstall (losing their amal history, which lives only on their device) and
+# install a differently-signed build as if it were a new app.
+#
+# Do NOT keep the .jks inside this repository.
+
+storePassword=
+keyPassword=
+keyAlias=amol365
+storeFile=/Users/YOUR_NAME/amol365-release.jks
