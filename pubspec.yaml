@@ -102,21 +102,30 @@ flutter:
           weight: 700
 
 flutter_native_splash:
-  color: "#1a5276"
-  color_dark: "#0d2b3e"
-  image: "lib/assets/images/splash.png"
+  # Emerald, matching AppColors.primary700 and the icon field. Was #1a5276,
+  # left over from the slate-blue palette the app no longer uses — the splash
+  # flashed blue and then the app opened green.
+  color: "#0A7454"
+  color_dark: "#043D2C"
+  image: "brand/splash.png"
   android_gravity: center
   ios_content_mode: center
   android_12:
-    image: "lib/assets/images/splash.png"
-    color: "#1a5276"
-    icon_background_color: "#1a5276"
+    # Android 12+ masks the splash icon to a circle and draws it smaller, so
+    # this uses a tighter-margined render rather than the same file.
+    image: "brand/splash_android12.png"
+    color: "#0A7454"
+    icon_background_color: "#0A7454"
   android: true
   ios: true
 
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "lib/assets/images/app_icon.png"
-  adaptive_icon_background: "#1a5276"
-  adaptive_icon_foreground: "lib/assets/images/app_icon_fg.png"
+  # The App Store rejects an icon with an alpha channel. The source PNG has one
+  # because the adaptive foreground needs transparency; this flattens it for
+  # iOS only.
+  remove_alpha_ios: true
+  image_path: "brand/app_icon.png"
+  adaptive_icon_background: "#0A7454"
+  adaptive_icon_foreground: "brand/app_icon_fg.png"
