@@ -288,7 +288,8 @@ void main() {
 
       // A bare pin said nothing about WHERE the times were computed for.
       expect(find.text('ঢাকা'), findsOneWidget);
-      expect(find.byIcon(Icons.location_on_outlined), findsOneWidget);
+      // Filled, not outlined — the chip has to be findable at a glance.
+      expect(find.byIcon(Icons.location_on_rounded), findsOneWidget);
     });
 
     testWidgets('the longest name does not break the bar at 320pt',

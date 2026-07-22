@@ -97,7 +97,17 @@ abstract class AppColors {
   static const warningSurface = Color(0xFFFDF2E4);
   static const error = Color(0xFFD1453B);
   static const errorSurface = Color(0xFFFCEBEA);
-  static const info = Color(0xFF2C7BE5);
+  /// Informational blue. Deliberately not part of the brand ramp — it is for
+  /// things that report state rather than express identity.
+  static const info = Color(0xFF1F6FE0);
+
+  /// Dark-theme pairing. The 600-weight blue above is unreadable on a near
+  /// black surface, which is the usual way a "works in light mode" colour
+  /// ships broken.
+  static const infoLight = Color(0xFF6BA8F5);
+
+  /// Tinted fill behind info-coloured content.
+  static const infoSurface = Color(0xFFEAF2FE);
 
   // ------------------------------------------------------------ prayer times
   //

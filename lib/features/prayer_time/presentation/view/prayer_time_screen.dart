@@ -43,7 +43,9 @@ class PrayerTimeScreen extends ConsumerWidget {
             onPressed: () => context.push(AppRoutes.azanSettings),
           ),
           const _LocationChip(),
-          const SizedBox(width: Space.sm),
+          // Matches the title's leading inset, so the chip is not jammed
+          // against the screen edge.
+          const SizedBox(width: Space.lg),
         ],
       ),
       body: RefreshIndicator(
@@ -121,54 +123,72 @@ class _LocationChip extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    final isLight = Theme.of(context).brightness == Brightness.light;
     final location = ref.watch(resolvedLocationProvider).value;
     final isApproximate = location?.isApproximate ?? false;
 
-    // Amber when the position is a guess, matching the warning card below, so
-    // the two cannot disagree about whether the location is trustworthy.
+    // Blue rather than the brand emerald. Emerald is the app's "primary
+    // action" colour and appears on buttons, active tabs and the hero, so an
+    // emerald chip would read as one more piece of chrome. Blue is the one
+    // hue nothing else here uses, which is exactly what makes it findable.
+    //
+    // Amber overrides it when the position is a guess, matching the warning
+    // card below so the two cannot disagree about whether to trust it.
     final color = isApproximate
         ? AppColors.warning
-        : theme.colorScheme.onSurfaceVariant;
+        : (isLight ? AppColors.info : AppColors.infoLight);
 
     return Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.sizeOf(context).width * 0.38,
+          // Wider than before because the text is larger. Still capped:
+          // ব্রাহ্মণবাড়িয়া unbounded pushes the screen title out of the bar.
+          maxWidth: MediaQuery.sizeOf(context).width * 0.42,
         ),
         child: Material(
-          color: color.withValues(alpha: 0.10),
-          borderRadius: Radii.smAll,
+          color: color.withValues(alpha: isLight ? 0.13 : 0.20),
+          borderRadius: Radii.mdAll,
           child: InkWell(
             onTap: () => context.push(AppRoutes.citySelector),
-            borderRadius: Radii.smAll,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Space.sm,
-                vertical: 6,
+            borderRadius: Radii.mdAll,
+            child: Ink(
+              decoration: BoxDecoration(
+                borderRadius: Radii.mdAll,
+                // A border as well as a fill. On a white app bar a tint alone
+                // is nearly invisible at a glance, which was the complaint.
+                border: Border.all(color: color.withValues(alpha: 0.38)),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isApproximate
-                        ? Icons.location_off_outlined
-                        : Icons.location_on_outlined,
-                    size: 15,
-                    color: color,
-                  ),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      // Named while resolving rather than left blank: an empty
-                      // chip reads as a broken control.
-                      location?.name ?? 'অবস্থান…',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppType.labelSmall.copyWith(color: color),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Space.md,
+                  vertical: Space.sm,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isApproximate
+                          ? Icons.location_off_outlined
+                          : Icons.location_on_rounded,
+                      size: 18,
+                      color: color,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: Space.xs),
+                    Flexible(
+                      child: Text(
+                        // Named while resolving rather than left blank: an
+                        // empty chip reads as a broken control.
+                        location?.name ?? 'অবস্থান…',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppType.label.copyWith(
+                          color: color,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
