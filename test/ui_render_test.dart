@@ -7,6 +7,8 @@ import 'package:amol365/app/services/storage_service.dart';
 import 'package:amol365/app/theme/app_theme.dart';
 import 'package:amol365/features/amal_tracker/presentation/view/amal_tracker_screen.dart';
 import 'package:amol365/features/home/presentation/view/home_screen.dart';
+import 'package:amol365/features/prayer_time/data/services/prayer_time_service.dart';
+import 'package:amol365/features/prayer_time/presentation/view/prayer_time_screen.dart';
 import 'package:amol365/features/prayer_time/presentation/viewmodel/prayer_time_viewmodel.dart';
 import 'package:amol365/features/profile/presentation/view/profile_screen.dart';
 import 'package:amol365/features/tasbeeh/presentation/view/tasbeeh_screen.dart';
@@ -64,6 +66,7 @@ void main() {
     Widget screen, {
     Brightness brightness = Brightness.light,
     Size size = phone,
+    ResolvedLocation? location,
   }) async {
     tester.view.physicalSize = size * 3;
     tester.view.devicePixelRatio = 3.0;
@@ -77,6 +80,8 @@ void main() {
           appVersionProvider.overrideWithValue('0.0.0-test'),
           featureFlagsProvider.overrideWithValue(FeatureFlags.phase1),
           nextPrayerProvider.overrideWith((ref) => const Stream.empty()),
+          if (location != null)
+            resolvedLocationProvider.overrideWith((ref) async => location),
         ],
         child: ScreenUtilInit(
           designSize: phone,
@@ -254,6 +259,90 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byTooltip('ডার্ক থিমে যান'), findsOneWidget);
+    });
+  });
+
+  group('namaz app bar location', () {
+    /// ব্রাহ্মণবাড়িয়া is the longest district name in cities.json at sixteen
+    /// characters. If the bar survives that on the narrowest screen it
+    /// survives every other name.
+    const longest = ResolvedLocation(
+      latitude: 23.95,
+      longitude: 91.11,
+      name: 'ব্রাহ্মণবাড়িয়া',
+      source: LocationSource.manual,
+    );
+
+    testWidgets('shows the location name beside the pin', (tester) async {
+      await render(
+        tester,
+        const PrayerTimeScreen(),
+        location: const ResolvedLocation(
+          latitude: 23.8,
+          longitude: 90.4,
+          name: 'ঢাকা',
+          source: LocationSource.manual,
+        ),
+      );
+      await tester.pump();
+
+      // A bare pin said nothing about WHERE the times were computed for.
+      expect(find.text('ঢাকা'), findsOneWidget);
+      expect(find.byIcon(Icons.location_on_outlined), findsOneWidget);
+    });
+
+    testWidgets('the longest name does not break the bar at 320pt',
+        (tester) async {
+      await render(
+        tester,
+        const PrayerTimeScreen(),
+        size: const Size(320, 640),
+        location: longest,
+      );
+      await tester.pump();
+
+      expectNoLayoutErrors(tester, 'app bar with the longest district name');
+      // The screen title must survive too — an unbounded chip would push it
+      // out of the bar entirely.
+      expect(find.text('নামাজের সময়'), findsOneWidget);
+    });
+
+    testWidgets('an approximate location is flagged in the bar itself',
+        (tester) async {
+      await render(
+        tester,
+        const PrayerTimeScreen(),
+        location: const ResolvedLocation(
+          latitude: 23.8,
+          longitude: 90.4,
+          name: 'ঢাকা',
+          source: LocationSource.fallback,
+        ),
+      );
+      await tester.pump();
+
+      // G-06 — a guessed location silently produces wrong prayer times, so it
+      // is marked where the user is already looking.
+      expect(find.byIcon(Icons.location_off_outlined), findsOneWidget);
+    });
+
+    testWidgets('the location is not repeated in the countdown card',
+        (tester) async {
+      await render(
+        tester,
+        const PrayerTimeScreen(),
+        location: const ResolvedLocation(
+          latitude: 23.8,
+          longitude: 90.4,
+          name: 'ঢাকা',
+          source: LocationSource.manual,
+        ),
+      );
+      await tester.pump();
+
+      // It moved to the app bar, where it stays visible instead of scrolling
+      // away. Showing it twice would be the duplication this replaced.
+      expect(find.text('ঢাকা'), findsOneWidget);
     });
   });
 

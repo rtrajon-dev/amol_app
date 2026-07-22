@@ -11,7 +11,6 @@ import '../../../../app/utils/prayer_time_utils.dart';
 import '../../../../global_widgets/app_card.dart';
 import '../../../../global_widgets/app_state_view.dart';
 import '../../../../global_widgets/loading_indicator.dart';
-import '../../data/services/prayer_time_service.dart';
 import '../../domain/models/prayer_time_model.dart';
 import '../viewmodel/prayer_time_viewmodel.dart';
 import '../widgets/prayer_card.dart';
@@ -43,12 +42,8 @@ class PrayerTimeScreen extends ConsumerWidget {
             tooltip: 'আযান সেটিংস',
             onPressed: () => context.push(AppRoutes.azanSettings),
           ),
-          IconButton(
-            icon: const Icon(Icons.location_on_outlined),
-            tooltip: 'শহর নির্বাচন',
-            onPressed: () => context.push(AppRoutes.citySelector),
-          ),
-          const SizedBox(width: Space.xs),
+          const _LocationChip(),
+          const SizedBox(width: Space.sm),
         ],
       ),
       body: RefreshIndicator(
@@ -82,11 +77,7 @@ class PrayerTimeScreen extends ConsumerWidget {
                 Space.xxxl,
               ),
               children: [
-                _CountdownHero(
-                  times: times,
-                  location: locationAsync.value,
-                  next: nextAsync.value,
-                ),
+                _CountdownHero(times: times, next: nextAsync.value),
                 const SizedBox(height: Space.lg),
 
                 // G-06 — when the location is a guess, say so. The original
@@ -116,15 +107,85 @@ class PrayerTimeScreen extends ConsumerWidget {
   }
 }
 
-/// Location, Hijri date, and the live countdown.
+/// The current location, in the app bar.
+///
+/// A bare pin icon told the user nothing: not where the times were computed
+/// for, and not that it was tappable. Since a wrong location silently produces
+/// wrong prayer times (G-06), the place has to be legible without scrolling.
+///
+/// Width is capped rather than left to grow. The longest district name here is
+/// ব্রাহ্মণবাড়িয়া at sixteen characters, which on a 320pt screen would push
+/// the screen title out of the bar entirely.
+class _LocationChip extends ConsumerWidget {
+  const _LocationChip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final location = ref.watch(resolvedLocationProvider).value;
+    final isApproximate = location?.isApproximate ?? false;
+
+    // Amber when the position is a guess, matching the warning card below, so
+    // the two cannot disagree about whether the location is trustworthy.
+    final color = isApproximate
+        ? AppColors.warning
+        : theme.colorScheme.onSurfaceVariant;
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.sizeOf(context).width * 0.38,
+        ),
+        child: Material(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: Radii.smAll,
+          child: InkWell(
+            onTap: () => context.push(AppRoutes.citySelector),
+            borderRadius: Radii.smAll,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: Space.sm,
+                vertical: 6,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isApproximate
+                        ? Icons.location_off_outlined
+                        : Icons.location_on_outlined,
+                    size: 15,
+                    color: color,
+                  ),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      // Named while resolving rather than left blank: an empty
+                      // chip reads as a broken control.
+                      location?.name ?? 'অবস্থান…',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.labelSmall.copyWith(color: color),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Hijri date and the live countdown.
 ///
 /// The countdown is the reason this screen is opened between prayers, so it is
 /// the largest element and everything else is context around it.
 class _CountdownHero extends StatelessWidget {
-  const _CountdownHero({required this.times, this.location, this.next});
+  const _CountdownHero({required this.times, this.next});
 
   final PrayerTimesModel times;
-  final ResolvedLocation? location;
   final NextPrayerState? next;
 
   @override
@@ -134,27 +195,9 @@ class _CountdownHero extends StatelessWidget {
     return GradientCard(
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.location_on_outlined,
-                size: 14,
-                color: Colors.white.withValues(alpha: 0.75),
-              ),
-              const SizedBox(width: Space.xs),
-              Flexible(
-                child: Text(
-                  location?.name ?? '—',
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.labelSmall.copyWith(
-                    color: Colors.white.withValues(alpha: 0.85),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Space.sm),
+          // The location used to be repeated here. It now lives in the app bar,
+          // where it is always visible instead of scrolling away, so this card
+          // is left to do one job: the date and the countdown.
           Text(
             '${PrayerTimeUtils.toBanglaDigits('${hijri.day}')} '
             '${hijri.monthNameBangla} '
