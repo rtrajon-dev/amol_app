@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/presentation/viewmodel/auth_viewmodel.dart';
 import '../../features/subscription/presentation/viewmodel/subscription_viewmodel.dart';
 import 'providers.dart';
+import 'subscription_notice.dart';
 
 /// True while a freshly authenticated session is still waiting to learn whether
 /// it has a subscription.
@@ -13,11 +14,6 @@ import 'providers.dart';
 /// who already pays would be shown a "টাকা কাটা হবে" screen for a second
 /// before it vanished. That flash is exactly what this flow exists to prevent.
 final subscriptionResolvingProvider =
-    NotifierProvider<_FlagNotifier, bool>(_FlagNotifier.new);
-
-/// Set when a status check found an existing subscription, so Home can say so
-/// once. Consumed by the reader.
-final subscriptionRecognisedProvider =
     NotifierProvider<_FlagNotifier, bool>(_FlagNotifier.new);
 
 /// Riverpod 3 has no StateProvider; a boolean still needs a Notifier.
@@ -83,7 +79,9 @@ class RegistrationCoordinator {
       _ref.read(entitlementProvider.notifier).set(entitlement);
 
       if (entitlement.isPremium) {
-        _ref.read(subscriptionRecognisedProvider.notifier).set(true);
+        _ref
+            .read(subscriptionNoticeProvider.notifier)
+            .set(SubscriptionNotice.recognised);
       }
     } catch (_) {
       // Deliberately catches everything, not just ApiException. The account is

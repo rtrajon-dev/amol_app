@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/di/providers.dart';
+import '../../../../app/di/subscription_notice.dart';
 import '../../../../app/network/api_exception.dart';
 import '../../../../app/services/storage_service.dart';
 import '../../../../app/services/telemetry_service.dart';
@@ -183,6 +184,9 @@ class SubscriptionNotifier extends Notifier<SubscriptionState> {
         // FR-S-19 — an existing web subscriber landing here with no OTP and
         // no second charge. Worth measuring separately from a new subscribe.
         await TelemetryService.instance.logEvent(AnalyticsEvents.alreadySubscribed);
+        ref
+            .read(subscriptionNoticeProvider.notifier)
+            .set(SubscriptionNotice.recognised);
         state = state.copyWith(step: GateStep.success, isBusy: false);
         return;
       }
@@ -221,6 +225,13 @@ class SubscriptionNotifier extends Notifier<SubscriptionState> {
       ref.read(entitlementProvider.notifier).set(entitlement);
       await TelemetryService.instance.logEvent(AnalyticsEvents.subscribed);
       await TelemetryService.instance.setPremium(true);
+      // Home congratulates them. This covers INITIAL CHARGING PENDING: the
+      // subscription exists and bdapps debits the number daily from here, so
+      // the user has subscribed even though the first charge is still in
+      // flight — the server has already resolved that to premium.
+      ref
+          .read(subscriptionNoticeProvider.notifier)
+          .set(SubscriptionNotice.activated);
       state = state.copyWith(step: GateStep.success, isBusy: false);
       return true;
     } on ApiException catch (e) {

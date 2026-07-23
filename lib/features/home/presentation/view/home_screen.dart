@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/config/feature_flags.dart';
 import '../../../../app/di/providers.dart';
-import '../../../../app/di/registration_coordinator.dart';
+import '../../../../app/di/subscription_notice.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_tokens.dart';
@@ -40,26 +40,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(ref.read(contentSyncServiceProvider).maybeSync());
-      _announceRecognisedSubscription();
+      _announceSubscriptionNotice();
     });
   }
 
-  /// Tells a user who registered with an already-subscribed number that they
-  /// were recognised — otherwise they land on Home and are left wondering
-  /// whether they are about to be charged again.
+  /// Closes the loop on whatever just happened with the subscription.
   ///
-  /// Shown here rather than on the registration screen because that screen is
-  /// gone by the time the answer arrives.
-  void _announceRecognisedSubscription() {
-    if (!ref.read(subscriptionRecognisedProvider)) return;
+  /// Two things can bring a user here: they subscribed through the gate, or the
+  /// number they registered with was already paying. Both deserve saying, and
+  /// neither can be said by the screen that learned it — the router replaces
+  /// the gate and the registration screen the instant entitlement flips.
+  void _announceSubscriptionNotice() {
+    // take() consumes it, so it appears once rather than on every visit Home.
+    final notice = ref.read(subscriptionNoticeProvider.notifier).take();
 
-    // Consume it, so it appears once rather than on every visit to Home.
-    ref.read(subscriptionRecognisedProvider.notifier).set(false);
+    final message = switch (notice) {
+      SubscriptionNotice.none => null,
+      // Covers INITIAL CHARGING PENDING. The subscription is taken out and
+      // bdapps debits the number automatically each day from here, so there is
+      // nothing provisional to warn them about.
+      SubscriptionNotice.activated =>
+        'অভিনন্দন! আপনার সাবস্ক্রিপশন চালু হয়েছে।',
+      SubscriptionNotice.recognised =>
+        'আপনার সাবস্ক্রিপশন সক্রিয় আছে — নতুন করে চার্জ হয়নি।',
+    };
+
+    if (message == null) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('আপনার সাবস্ক্রিপশন সক্রিয় আছে — নতুন করে চার্জ হয়নি।'),
-        duration: Duration(seconds: 4),
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 4),
       ),
     );
   }

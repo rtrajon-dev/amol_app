@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:amol365/app/di/providers.dart';
 import 'package:amol365/app/di/registration_coordinator.dart';
+import 'package:amol365/app/di/subscription_notice.dart';
 import 'package:amol365/app/network/api_client.dart';
 import 'package:amol365/app/services/secure_storage_service.dart';
 import 'package:amol365/app/services/storage_service.dart';
@@ -176,7 +177,7 @@ void main() {
 
       await register(c);
 
-      expect(c.read(subscriptionRecognisedProvider), isTrue);
+      expect(c.read(subscriptionNoticeProvider), SubscriptionNotice.recognised);
     });
 
     test('a new number stays free and says nothing', () async {
@@ -186,7 +187,7 @@ void main() {
       await register(c);
 
       expect(c.read(entitlementProvider).isPremium, isFalse);
-      expect(c.read(subscriptionRecognisedProvider), isFalse);
+      expect(c.read(subscriptionNoticeProvider), SubscriptionNotice.none);
     });
   });
 
