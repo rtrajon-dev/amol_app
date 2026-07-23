@@ -2,7 +2,7 @@ name: amol365
 description: "ইসলামিক আমল - Daily Islamic practice tracker for Bangladeshi Muslims"
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.11.5
